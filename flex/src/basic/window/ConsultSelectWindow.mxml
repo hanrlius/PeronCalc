@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!--
+  Created by aruis on 14-2-12.
+-->
+<basic:PopUpWindow xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:basic="basic.*"
+                   xmlns:s="library://ns.adobe.com/flex/spark" creationComplete="creationCompleteHandler(event)">
+    <s:HGroup width="90%">
+        <s:TextInput id="textInput" width="100%" height="{search.height}" text="{list.selectedItem[cconsultswfld]}"/>
+        <basic:BasicButton id="search" basicLabel="查询" ingLabel="中..."
+                           click="search_clickHandler(event)"/>
+    </s:HGroup>
+    <s:List id="list" width="90%" height="60%" labelField="{cconsultswfld}"
+            dataProvider="{listArr}" change="{selectItem = list.selectedItem}"/>
+
+    <fx:Script><![CDATA[
+        import mx.collections.ArrayCollection;
+        import mx.events.FlexEvent;
+        import mx.rpc.events.ResultEvent;
+        import mx.utils.StringUtil;
+
+        import tools.AccessUtil;
+        import tools.CRMtool;
+
+        [Bindable]
+        private var listArr:ArrayCollection = new ArrayCollection();
+
+        public var sql:String;
+
+        public var selectItem:Object;
+
+        [Bindable]
+        public var cconsultswfld:String = "";
+
+        private function search_clickHandler(event:MouseEvent):void {
+            text = StringUtil.trim(textInput.text);
+            getList();
+        }
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            textInput.setFocus();
+            if (CRMtool.isStringNotNull(text)) {
+                textInput.text = text;
+                getList();
+            }
+        }
+
+        private function getList():void {
+            var _sql = sql.replace(/@param@/g, text);
+
+            AccessUtil.remoteCallJava("core", "querySql", function (e:ResultEvent):void {
+                listArr = e.result as ArrayCollection
+            }, _sql);
+        }
+        ]]></fx:Script>
+</basic:PopUpWindow>

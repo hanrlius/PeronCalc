@@ -1,0 +1,131 @@
+<?xml version="1.0"?>
+<!--
+  Created by aruis on 14-1-22.
+-->
+<basic:BasicView xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                 xmlns:basic="basic.*"
+                 creationComplete="creationCompleteHandler(event)" title="服务地址设置" tabBarVisible="false">
+
+    <s:VGroup width="100%" height="100%" paddingTop="20" paddingBottom="10" paddingLeft="10" paddingRight="10"
+              gap="10">
+        <basic:CardBox width="100%">
+            <basic:CardItem id="ipTextInput" title="IP或域名"/>
+            <basic:CardItem id="portTextInput" title="端口"/>
+            <basic:CardItem id="rootTextInput" title="根路径"/>
+        </basic:CardBox>
+        <s:HGroup width="100%" gap="5">
+            <s:Button id="open" label="互联网预置方案" width="100%" click="button1_clickHandler(event)"/>
+            <s:Button label="局域网预置方案" width="100%" click="button2_clickHandler(event)"/>
+        </s:HGroup>
+        <s:Button styleName="queryButton" label="测试" id="testButton" width="100%"
+                  click="testButton_clickHandler()"/>
+        <s:Button id="saveButton" visible="false" includeInLayout="{saveButton.visible}" label="保存" width="100%"
+                  click="saveButton_clickHandler(event)" styleName="queryButton"/>
+    </s:VGroup>
+
+    <fx:Script><![CDATA[
+        import mx.events.FlexEvent;
+        import mx.rpc.AbstractOperation;
+        import mx.rpc.events.FaultEvent;
+        import mx.rpc.events.ResultEvent;
+        import mx.rpc.remoting.RemoteObject;
+        import mx.utils.StringUtil;
+
+        import tools.CRMmodel;
+        import tools.CRMtool;
+        import tools.Server;
+
+        private var ip:String;
+        private var port:String;
+        private var contextRoot:String;
+        [Bindable]
+        private var testResult:String = "";
+
+        private function saveButton_clickHandler(event:MouseEvent):void {
+            Server.ip = ip;
+            Server.port = port;
+            Server.contextRoot = contextRoot;
+            CRMtool.showToast("保存成功。");
+        }
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            ipTextInput.value = Server.ip;
+            portTextInput.value = Server.port;
+            rootTextInput.value = Server.contextRoot;
+        }
+
+        private function logoutButton_clickHandler(event:MouseEvent):void {
+            CRMtool.setIsLogin(false);
+            CRMtool.exit();
+        }
+
+        private function sendIMEIButton_clickHandler(event:MouseEvent):void {
+            System.setClipboard(CRMtool.getIMEI());
+            CRMtool.showToast("已复制IMEI到剪切板。");
+        }
+
+        private function testButton_clickHandler():void {
+            ip = StringUtil.trim(ipTextInput.value);
+            port = StringUtil.trim(portTextInput.value);
+            contextRoot = StringUtil.trim(rootTextInput.value);
+
+            if (CRMtool.isStringNull(ip) || CRMtool.isStringNull(port)) {
+                CRMtool.showToast("请填入正确的值。");
+                return;
+            }
+
+            begin();
+
+            var ro:RemoteObject = new RemoteObject("core");
+            ro.endpoint = "http://" + ip + ":" + port + "/" + contextRoot + "/messagebroker/amf";
+            var aopt:AbstractOperation = ro.getOperation("sayHello");
+
+
+            aopt.addEventListener(ResultEvent.RESULT, function (e:ResultEvent):void {
+                if (CRMtool.isStringNotNull(e.result as String)) {
+                    success();
+                } else {
+                    error();
+                }
+            });
+
+            aopt.addEventListener(FaultEvent.FAULT, function (fault:FaultEvent):void {
+                error();
+            }, false, 0, true);
+
+            aopt.send();
+
+            function begin():void {
+                testResult = "中...";
+                testButton.enabled = false;
+            }
+
+            function error():void {
+                testResult = "【失败】";
+                testButton.enabled = true;
+                CRMtool.showToast("测试失败，请检查。");
+            }
+
+            function success():void {
+                testButton.visible = false;
+                testButton.includeInLayout = false;
+                saveButton.visible = true;
+                saveButton.includeInLayout = true;
+                CRMtool.showToast("测试成功。");
+            }
+        }
+
+        private function button1_clickHandler(event:MouseEvent):void {
+            ipTextInput.value = "120.194.194.91"
+            portTextInput.value = "3808" + CRMmodel.cc;
+            testButton_clickHandler()
+        }
+
+        private function button2_clickHandler(event:MouseEvent):void {
+            ipTextInput.value = "192.168.113.219"
+            portTextInput.value = "3808" + CRMmodel.cc;
+            testButton_clickHandler()
+
+        }
+        ]]></fx:Script>
+</basic:BasicView>

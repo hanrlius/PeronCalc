@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<!--
+  Created by user on 2014/6/19.
+-->
+<basic:BasicView xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                 xmlns:basic="basic.*"
+                 creationComplete="creationCompleteHandler(event)" title="得分日报"
+                 destructionPolicy="never"
+>
+    <basic:layout>
+        <s:VerticalLayout/>
+    </basic:layout>
+    <s:HGroup width="100%" paddingLeft="3" paddingRight="3" paddingTop="3">
+        <s:VGroup width="100%">
+            <s:HGroup width="100%" verticalAlign="middle">
+                <s:Label text="部门:" baselineShift="-5"/>
+                <s:TextInput id="codeInput" width="260" enabled="false"/>
+            </s:HGroup>
+            <s:HGroup width="100%" verticalAlign="middle">
+                <s:Label text="日期:" baselineShift="-5"/>
+                <basic:DateTextInput id="dateInput" text="{CRMtool.formatDateNoHNS(new Date())}"
+                                     width="260" mychange="dateInput_changeHandler(event)"/>
+            </s:HGroup>
+        </s:VGroup>
+        <s:Button id="searchButton" label="当月明细" width="100%" height="100%"
+                  styleName="queryButton"
+                  click="searchButton_clickHandler(event)"/>
+    </s:HGroup>
+    <s:DataGrid id="grid" width="100%" height="100%" lineHeight="50"
+                typicalItem="{typicalItem}" sortableColumns="false">
+        <s:columns>
+            <s:ArrayList>
+                <s:GridColumn dataField="工号"/>
+                <s:GridColumn dataField="姓名"/>
+                <s:GridColumn dataField="安全" labelFunction="CRMtool.formatFloat"/>
+            </s:ArrayList>
+        </s:columns>
+    </s:DataGrid>
+    <fx:Script><![CDATA[
+        import mx.collections.ArrayCollection;
+        import mx.events.FlexEvent;
+        import mx.rpc.events.ResultEvent;
+        import mx.utils.ObjectUtil;
+
+        import tools.AccessUtil;
+        import tools.CRMmodel;
+        import tools.CRMtool;
+
+        private var typicalItem:Object = {姓名: '四位字符', 工号: '1234567890', 安全: '100.00'};
+
+        private function searchButton_clickHandler(event:MouseEvent):void {
+            var item:Object = grid.selectedItem
+            if (item != null) {
+                grid.selectedIndex = -1;
+                var obj = ObjectUtil.copy(item);
+                obj.date = dateInput.text;
+                CRMmodel.navigator.pushView(AnquanTaizhang, obj);
+            } else {
+                CRMtool.showToast("请先选择要查看的人员.");
+            }
+        }
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            codeInput.text = CRMmodel.user.部门名称;
+            search();
+        }
+
+        private function dateInput_changeHandler(event:Event):void {
+            search();
+        }
+
+        private function search():void {
+            var code = CRMmodel.user.部门编码;
+            var date = dateInput.text;
+
+            AccessUtil.remoteCallJava("core", "queryAnquan", function (e:ResultEvent):void {
+                grid.dataProvider = (e.result as ArrayCollection)
+            }, {usercode: CRMmodel.user.职工编码, code: code, date: date}, true);
+        }
+
+        public function refresh():void {
+            grid.dataProvider = null;
+            search();
+            /*var ac:ArrayCollection = grid.dataProvider as ArrayCollection;
+             if (CRMtool.isListSizeNotZero(ac)) {
+             ac.refresh()
+             }*/
+        }
+
+        private function backKeyPressedHandler(event:FlexEvent):void {
+            //event.preventDefault()
+        }
+        ]]></fx:Script>
+</basic:BasicView>

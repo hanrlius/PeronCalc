@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--
+  Created by aruis on 2014/3/19.
+-->
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+        show="showHandler(event)">
+    <fx:Script><![CDATA[
+        import mx.events.FlexEvent;
+
+        private function showHandler(event:FlexEvent):void {
+            navigator.dispatchEvent(new Event("viewChanged"));
+        }
+        ]]></fx:Script>
+</s:View>

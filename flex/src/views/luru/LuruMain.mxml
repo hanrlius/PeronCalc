@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<!--
+  Created by Aruis on 2014/7/15.
+-->
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+          width="100%" height="100%" horizontalAlign="center"
+          paddingTop="{mygap}" paddingBottom="{mygap}" gap="{mygap}" paddingRight="{mygap}" paddingLeft="{mygap}"
+          creationComplete="creationCompleteHandler(event)">
+
+    <s:TileGroup horizontalAlign="center" verticalGap="40" requestedColumnCount="{stage.width>700?3:2}"
+                 horizontalGap="30">
+        <s:VGroup width="100%" click="CRMmodel.navigator.pushView(KaoqinLuru)" horizontalAlign="center"
+                  enabled="{kaoqinEnabled}">
+            <s:Image source="@Embed('/assets/button/kaoqin.png')" mouseDownEffect="Blur"/>
+            <s:Label text="考勤管理"/>
+        </s:VGroup>
+
+        <s:VGroup width="100%" click="CRMmodel.navigator.pushView(GerenLuru)" horizontalAlign="center"
+                  enabled="{gerenEnabled}">
+            <s:Image source="@Embed('/assets/button/defen.png')" mouseDownEffect="Blur"/>
+            <s:Label text="个人得分管理"/>
+        </s:VGroup>
+        <s:VGroup width="100%" click="CRMmodel.navigator.pushView(BanzuLuru)" horizontalAlign="center"
+                  enabled="{banzuEnabled}">
+            <s:Image source="@Embed('/assets/button/banzu.png')" mouseDownEffect="Blur"/>
+            <s:Label text="班组得分管理"/>
+        </s:VGroup>
+
+        <s:VGroup width="100%" click="CRMmodel.navigator.pushView(CailiaoChaxun)" horizontalAlign="center"
+                  enabled="{cailiaoEnabled}"
+                  visible="{CRMmodel.cc == '0'}" includeInLayout="{CRMmodel.cc == '0'}">
+            <s:Image source="@Embed('/assets/button/jiangfa.png')" mouseDownEffect="Blur"/>
+            <s:Label text="班组材料奖罚"/>
+        </s:VGroup>
+    </s:TileGroup>
+
+
+    <!--<s:Button label="考勤管理" width="100%" height="100%" click="CRMmodel.navigator.pushView(KaoqinLuru)"-->
+    <!--enabled="{kaoqinEnabled}"/>-->
+    <!--<s:Button label="个人得分管理" width="100%" height="100%" click="CRMmodel.navigator.pushView(GerenLuru)"-->
+    <!--enabled="{gerenEnabled}"/>-->
+    <!--<s:Button label="班组得分管理" width="100%" height="100%" click="CRMmodel.navigator.pushView(BanzuLuru)"-->
+    <!--enabled="{banzuEnabled}"/>-->
+    <fx:Script><![CDATA[
+        import mx.events.FlexEvent;
+
+        import tools.CRMmodel;
+        import tools.CRMtool;
+
+        import views.chaxun.CailiaoChaxun;
+
+        private var mygap:Number = 30;
+
+        [Bindable]
+        private var kaoqinEnabled:Boolean = false;
+
+        [Bindable]
+        private var gerenEnabled:Boolean = false;
+
+        [Bindable]
+        private var banzuEnabled:Boolean = false;
+
+        [Bindable]
+        private var cailiaoEnabled:Boolean = false;
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            if (CRMmodel.debug) {
+                kaoqinEnabled = gerenEnabled = banzuEnabled = cailiaoEnabled = true
+                return;
+            }
+
+            for each(var item:Object in CRMmodel.menus) {
+                if (item.模块编码 == '09260101' && CRMtool.getBoolean(item.修改)) {
+                    kaoqinEnabled = true;
+                }
+                if (item.模块编码 == '09260201' && CRMtool.getBoolean(item.修改)) {
+                    gerenEnabled = true;
+                }
+                if (item.模块编码 == '09260301' && CRMtool.getBoolean(item.查看)) {
+                    banzuEnabled = true;
+                }
+                if (item.模块编码 == '00282602' && CRMtool.getBoolean(item.查看)) {
+                    cailiaoEnabled = true;
+                }
+            }
+        }
+        ]]></fx:Script>
+</s:VGroup>

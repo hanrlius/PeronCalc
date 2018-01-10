@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<!--
+  Created by aruis on 14-2-12.
+-->
+<s:SkinnablePopUpContainer xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                           backgroundColor="0x444444" backgroundAlpha="0.95"
+                           creationComplete="creationCompleteHandler(event)" cachePolicy="on"
+        >
+    <fx:Metadata>
+        [Event(name="onSubmitEvent", type="flash.events.Event")]
+    </fx:Metadata>
+    <fx:Declarations>
+        <fx:Component className="buttonComponent">
+            <s:HGroup width="100%" horizontalAlign="center" paddingTop="10" gap="0">
+                <s:Button id="submitButton" label="确定" width="25%" click="submitButton_clickHandler(event)"/>
+                <s:Spacer width="3%" visible="{cancelButton.visible}"
+                          includeInLayout="{cancelButton.visible}"/>
+                <s:Button id="cancelButton" label="取消" width="25%" click="cancelButton_clickHandler(event)"
+                          includeInLayout="{cancelButton.visible}"/>
+                <fx:Script><![CDATA[
+                    private function cancelButton_clickHandler(event:MouseEvent):void {
+                        (owner as PopUpWindow).close();
+                    }
+
+                    private function submitButton_clickHandler(event:MouseEvent):void {
+                        (owner as PopUpWindow).onSubmit();
+                    }
+                    ]]></fx:Script>
+            </s:HGroup>
+        </fx:Component>
+        <fx:Component className="transitionComponent">
+            <s:HGroup width="100%" horizontalAlign="center" verticalAlign="middle" gap="10">
+                <s:BusyIndicator symbolColor="white"/>
+                <s:Label text="{text}" color="white"/>
+                <fx:Script><![CDATA[
+                    [Bindable]
+                    public var text:String;
+                    ]]></fx:Script>
+            </s:HGroup>
+        </fx:Component>
+    </fx:Declarations>
+    <s:layout>
+        <s:VerticalLayout verticalAlign="middle" horizontalAlign="center" gap="15"/>
+    </s:layout>
+
+    <fx:Script><![CDATA[
+        import mx.core.FlexGlobals;
+        import mx.core.IVisualElement;
+        import mx.events.FlexEvent;
+
+        import spark.components.Label;
+
+        import tools.CRMmodel;
+
+        import tools.CRMtool;
+
+        public static const TRANSITION = 0;//过渡 无按钮
+        public static const PROMPT = 1;//提示 只有个确定
+        public static const AFFIRM = 2;//确认 有确定取消两个按钮
+
+        [Bindable]
+        public var type:int = AFFIRM;
+
+        [Bindable]
+        public var text:String = "";
+
+        override protected function createChildren():void {
+            super.createChildren();
+            if (type == TRANSITION) {
+                var e = new transitionComponent();
+                e.text = text;
+                this.addElement(IVisualElement(e));
+            } else {
+                if (CRMtool.isStringNotNull(text)) {
+                    var label:Label = new Label();
+                    label.text = text;
+                    label.setStyle("color", "0xFFFFFF");
+                    this.addElementAt(label, 0);
+                }
+                var com = IVisualElement(new buttonComponent());
+
+                if (type == PROMPT) {
+                    com.cancelButton.visible = false;
+                    com.cancelButton.includeInLayout = false;
+                }
+
+
+                this.addElement(com);
+            }
+
+        }
+
+        public function show() {
+            open(DisplayObjectContainer(FlexGlobals.topLevelApplication));
+            if (type != TRANSITION)
+                CRMmodel.popUpWindow = this;
+        }
+
+        public function onSubmit() {
+            this.dispatchEvent(new Event("onSubmitEvent"));
+            close();
+        }
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            width = systemManager.screen.width;
+            height = systemManager.screen.height;
+        }
+
+        override public function close(commit:Boolean = false, data:* = undefined):void {
+            this.dispatchEvent(new Event("onCloseEvent"));
+            super.close(commit, data);
+            if (type != TRANSITION)
+                CRMmodel.popUpWindow = null;
+        }
+        ]]></fx:Script>
+</s:SkinnablePopUpContainer>

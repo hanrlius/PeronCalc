@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!--
+  Created by aruis on 14-2-12.
+-->
+<basic:PopUpWindow xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:basic="basic.*"
+                   xmlns:s="library://ns.adobe.com/flex/spark">
+    <s:VGroup>
+        <!-- <s:Label text="{text}"/>-->
+        <s:DateSpinner id="dateSpinner" locale="zh-CN" displayMode="dateAndTime"
+                       selectedDate="{date==null?new Date():date}"/>
+    </s:VGroup>
+
+    <fx:Script><![CDATA[
+        import tools.CRMtool;
+        import tools.DateHadle;
+
+        [Bindable]
+        public var date:Date = null;
+        public var isMaxToday:Boolean = false;
+
+        public override function onSubmit() {
+            if (DateHadle.myDateDiffer(CRMtool.formatDateNoHNS(dateSpinner.selectedDate), CRMtool.formatDateNoHNS(new Date())) < 0) {
+                CRMtool.showToast("不能选择今天以后的日期.请重新选择.")
+                return
+            }
+            super.onSubmit();
+        }
+        ]]></fx:Script>
+</basic:PopUpWindow>

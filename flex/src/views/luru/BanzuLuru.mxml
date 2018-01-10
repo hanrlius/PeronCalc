@@ -1,0 +1,240 @@
+<?xml version="1.0"?>
+<!--
+  Created by user on 2014/6/19.
+-->
+<basic:BasicView xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                 xmlns:basic="basic.*"
+                 destructionPolicy="never"
+                 creationComplete="creationCompleteHandler(event)">
+    <basic:layout>
+        <s:VerticalLayout/>
+    </basic:layout>
+    <s:VGroup width="100%">
+        <s:HGroup width="100%" paddingLeft="10" paddingRight="3" paddingTop="5" gap="12">
+            <s:HGroup width="100%" verticalAlign="middle">
+                <s:Label text="部门:" baselineShift="-5"/>
+                <basic:SelectTextInput id="departmentSelectTextInput" width="100%"
+                                       mychange="_changeHandler(event)"/>
+            </s:HGroup>
+            <s:HGroup width="100%" verticalAlign="middle">
+                <s:Label text="日期:" baselineShift="-5"/>
+                <basic:DateTextInput id="dateInput" text="{CRMtool.formatDateNoHNS(new Date())}" width="100%"
+                                     winText="请您确认打分日期"
+                                     mychange="_changeHandler(event)" isMaxToday="true"/>
+            </s:HGroup>
+        </s:HGroup>
+        <s:HGroup width="100%" visible="{!isDo}" includeInLayout="{!isDo}"
+                  horizontalAlign="center"
+                  gap="12"
+                  paddingRight="25" paddingLeft="25"
+                  paddingTop="10" paddingBottom="10">
+            <s:Button label="开始打分" width="100%" height="80" visible="{isAuth}" includeInLayout="{isAuth}"
+                      click="button1_clickHandler(event)"
+                      enabled="{CRMtool.isListSizeNotZero(grid.dataProvider)}"/>
+            <s:Button label="当月明细" width="100%" height="80"
+                      click="button2_clickHandler(event)"
+                      enabled="{CRMtool.isListSizeNotZero(grid.dataProvider)}"/>
+        </s:HGroup>
+        <s:HGroup id="doGroup" width="100%" verticalAlign="middle" paddingLeft="10"
+                  visible="{isDo &amp;&amp; grid.selectedIndex>-1}"
+                  includeInLayout="{isDo &amp;&amp;grid.selectedIndex>-1}">
+            <s:VGroup width="100%" gap="12">
+                <s:HGroup verticalAlign="middle" width="100%">
+                    <s:Label text="绩效:" baselineShift="-5"/>
+                    <s:TextInput id="jixiaoInput" width="220"
+                                 softKeyboardType="{CRMtool.isIOS()?'punctuation':'number'}"
+                                 text="{grid.selectedItem!=null ? CRMtool.roundFloatString(grid.selectedItem.绩效):''}"
+                                 focusIn="valueInput_focusInHandler(event)"/>
+                </s:HGroup>
+                <s:HGroup verticalAlign="middle" width="100%">
+                    <s:Label text="安全:" baselineShift="-5"/>
+                    <s:TextInput id="anquanInput" width="220"
+                                 softKeyboardType="{CRMtool.isIOS()?'punctuation':'number'}"
+                                 text="{grid.selectedItem!=null ? CRMtool.roundFloatString(grid.selectedItem.安全):''}"
+                                 focusIn="valueInput_focusInHandler(event)"/>
+                </s:HGroup>
+            </s:VGroup>
+            <s:VGroup width="100%" height="100%" verticalAlign="middle" gap="10" paddingRight="10">
+                <s:Button id="preButton" visible="false" includeInLayout="false" label="{'撤销上移'}" width="100%"
+                          click="preOrNextButton_clickHandler(event)"/>
+                <s:Button id="nextButton" label="保存" width="100%" height="100%"
+                          click="preOrNextButton_clickHandler(event)"/>
+            </s:VGroup>
+        </s:HGroup>
+    </s:VGroup>
+
+    <s:DataGrid id="grid" width="100%" height="100%" lineHeight="50" selectionChange="getTitle()"
+                typicalItem="{typicalItem}" sortableColumns="false">
+        <s:columns>
+            <s:ArrayList>
+                <s:GridColumn dataField="班组"/>
+                <s:GridColumn dataField="绩效" labelFunction="CRMtool.formatFloat"/>
+                <s:GridColumn dataField="安全" labelFunction="CRMtool.formatFloat"/>
+            </s:ArrayList>
+        </s:columns>
+    </s:DataGrid>
+    <fx:Script><![CDATA[
+        import mx.collections.ArrayCollection;
+        import mx.events.FlexEvent;
+        import mx.rpc.events.FaultEvent;
+        import mx.rpc.events.ResultEvent;
+        import mx.utils.ObjectUtil;
+
+        import tools.AccessUtil;
+        import tools.CRMmodel;
+        import tools.CRMtool;
+        import tools.ServiceTool;
+
+        import views.BanzuTaizhang;
+
+        private var typicalItem:Object = {班组: '四位字符再加两个', 绩效: '100.00', 安全: '100.00'};
+        [Bindable]
+        private var isDo:Boolean = false;
+
+        [Bindable]
+        private var isAuth:Boolean = false;
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            AccessUtil.remoteCallJava("core", "getParentDepartmentBanzu", function (e:ResultEvent):void {
+                var list:ArrayCollection = e.result as ArrayCollection
+                departmentSelectTextInput.dataProvider = list;
+                if (CRMtool.isListSizeNotZero(list)) {
+                    departmentSelectTextInput.selectItem = list[0];
+                }
+
+                for each(var item:Object in CRMmodel.menus) {
+                    if (item.模块编码 == '09260301' && CRMtool.getBoolean(item.修改)) {
+                        isAuth = true;
+                        break;
+                    }
+                }
+                dateInput.open();
+            }, CRMmodel.user, false)
+        }
+
+        private function _changeHandler(event:Event):void {
+            isDo = false
+            grid.grid.verticalScrollPosition = 0;
+            grid.editable = false;
+            if (departmentSelectTextInput.selectItem == null) {
+                return
+            }
+            AccessUtil.remoteCallJava("core", "getDepartmentChildren", function (e:ResultEvent):void {
+                grid.dataProvider = (e.result as ArrayCollection)
+            }, {
+                name: departmentSelectTextInput.selectItem.部门名称,
+                code: departmentSelectTextInput.selectItem.部门编码,
+                username: CRMmodel.user.登录名,
+                date: dateInput.text
+            }, true);
+        }
+
+
+        private function preOrNextButton_clickHandler(event:MouseEvent):void {
+            var selectedIndex:int = grid.selectedIndex;
+            if (event.currentTarget == preButton) {
+                //grid.selectedItem.考勤情况 = ""
+                if (selectedIndex > 0) {
+                    grid.selectedIndex--
+                }
+            } else {
+                var change:Boolean = false;
+                if (CRMtool.getNumber(grid.selectedItem.安全) != CRMtool.getNumber(anquanInput.text)) {
+                    change = true
+                    grid.selectedItem.安全 = anquanInput.text
+                }
+                if (CRMtool.getNumber(grid.selectedItem.绩效) != CRMtool.getNumber(jixiaoInput.text)) {
+                    change = true
+                    grid.selectedItem.绩效 = jixiaoInput.text
+                }
+                if (change) {
+                    saveItem(grid.selectedItem)
+                }
+
+                /*if (selectedIndex < (grid.dataProvider.length - 1)) {
+                 grid.selectedIndex++
+                 }*/
+            }
+
+            var ac:ArrayCollection = (grid.dataProvider as ArrayCollection)
+            ac.refresh()
+
+            grid.ensureCellIsVisible(ac.getItemIndex(grid.selectedItem))
+            if (_input) {
+                //_input.setFocus()
+            }
+            getTitle()
+        }
+
+        private function saveItem(selectedItem:Object):void {
+            var jixiao:Object = {};
+            jixiao.日期 = dateInput.text;
+            jixiao.序号 = selectedItem.台账顺序;
+            jixiao.部门编码 = selectedItem.部门编码;
+            jixiao.部门名称 = selectedItem.班组;
+
+            jixiao.得分 = CRMtool.getNumber(selectedItem.绩效)
+            jixiao.录入人 = CRMmodel.user.登录名;
+            jixiao.录入人姓名 = CRMmodel.user.用户姓名;
+
+            jixiao.安全得分 = CRMtool.getNumber(selectedItem.安全)
+            jixiao.user = CRMtool.getSimpleUser();
+
+            AccessUtil.remoteCallJava("core", "save班组得分", function (e:ResultEvent):void {
+                if (e.result as Boolean) {
+                    //CRMtool.showToast("保存成功");
+                } else {
+                    _errFun(e)
+                }
+            }, jixiao, false, "", null, function (fe:FaultEvent):void {
+                _errFun()
+            })
+
+            function _errFun(e = null) {
+                var str = selectedItem.班组 + " 数据保存失败";
+                if (e != null && CRMtool.isStringNotNull(e.result.str)) {
+                    str += ("，原因：" + e.result.str);
+                }
+                CRMtool.showToast(str);
+
+                selectedItem.绩效 = ''
+                selectedItem.安全 = ''
+                var ac:ArrayCollection = (grid.dataProvider as ArrayCollection)
+                ac.refresh()
+            }
+        }
+
+        private function getTitle():void {
+            title = grid.selectedItem.班组
+        }
+
+        private function button1_clickHandler(event:MouseEvent):void {
+            if ((grid.dataProvider as ArrayCollection).length > 0) {
+                ServiceTool.isDateAllow(dateInput.text, function () {
+                    isDo = true;
+                    grid.selectedIndex = 0
+                    getTitle()
+                })
+            }
+        }
+
+        private var _input:TextInput;//用来记录焦点
+        private function valueInput_focusInHandler(event:FocusEvent):void {
+            var input:TextInput = event.currentTarget as TextInput
+            _input = input;
+            input.selectAll()
+        }
+
+        private function button2_clickHandler(event:MouseEvent):void {
+            var item:Object = grid.selectedItem
+            if (item != null) {
+                grid.selectedIndex = -1;
+                var obj = ObjectUtil.copy(item);
+                obj.date = dateInput.text;
+                CRMmodel.navigator.pushView(BanzuTaizhang, obj);
+            } else {
+                CRMtool.showToast("请先选择要查看的班组.");
+            }
+        }
+        ]]></fx:Script>
+</basic:BasicView>

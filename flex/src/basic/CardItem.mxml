@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<!--
+  Created by aruis on 2014/3/19.
+-->
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+          xmlns:rule="basic.rule.*" xmlns:basic="basic.*" gap="0" width="100%">
+    <fx:Metadata>
+        [Event(name="change", type="flash.events.Event")]
+        [Event(name="delete", type="flash.events.Event")]
+        [Event(name="focusOut", type="flash.events.Event")]
+    </fx:Metadata>
+    <s:HGroup paddingLeft="15" paddingRight="8" paddingTop="4" paddingBottom="4" verticalAlign="middle"
+              width="100%">
+        <s:Label text="{title}"  color="{isAllowNull?new uint(0x9F9F9F):new uint(0xff3c41)}" width="160"/>
+
+        <basic:BasicTextInput id="textInput" borderVisible="false" width="100%"
+                              text="{_value}"
+                              contentBackgroundAlpha="0"
+                              enabled="{_ieditable==0?(owner as CardBox).editable:_ieditable==1?true:false}" color="#040A00"
+                              change="textInput_changeHandler(event)"
+                              focusOut="textInput_focusOutHandler(event)"
+                              focusIn="textInput_focusInHandler(event)"
+                              creationComplete="textInput_creationCompleteHandler(event)"
+                              displayAsPassword="{isPassword}" restrict="{restrict}"
+                />
+        <basic:NoBorderButton id="deleteButton" styleName="deleteButton"  click="deleteButton_clickHandler(event)"/>
+    </s:HGroup>
+    <rule:HRule id="hRule" width="100%" strokeColor="#bcbcbc" strokeWidth="2"
+                creationComplete="hRule_creationCompleteHandler(event)"  />
+    <fx:Script><![CDATA[
+        import mx.events.FlexEvent;
+
+        import spark.events.TextOperationEvent;
+
+        [Bindable]
+        public var title:String = "";
+        [Bindable]
+        private var _value = "";
+
+        [Bindable]
+        private var _ieditable:int = 0;
+
+        [Bindable]
+        public var showDeleteButton:Boolean = false;
+
+        [Bindable]
+        public var isAllowNull:Boolean = true;
+        [Bindable]
+        public var isPassword:Boolean = false;
+
+        [Bindable]
+        public var restrict:String;
+
+
+        private function hRule_creationCompleteHandler(event:FlexEvent):void {
+            hRule.visible = ((owner as CardBox).getElementIndex(this) < (owner as CardBox).numElements - 1);
+            hRule.includeInLayout = hRule.visible;
+        }
+
+        private function textInput_changeHandler(event:TextOperationEvent):void {
+            dispatchEvent(new Event("change"));
+        }
+
+        private function textInput_focusOutHandler(event:FocusEvent):void {
+            dispatchEvent(new Event("focusOut"));
+        }
+
+        public function set editable(value:Boolean):void {
+            if (value)
+                _ieditable = 1;
+            else
+                _ieditable = -1;
+
+            if (textInput != null) {
+                textInput.enabled = value;
+            }
+
+            if (deleteButton != null) {
+                deleteButton.enabled = value;
+            }
+        }
+
+        public function get value():String {
+            return textInput.text;
+        }
+
+        public function set value(value:*):void {
+            _value = value;
+            dispatchEvent(new Event("change"));
+        }
+
+        private function textInput_focusInHandler(event:FocusEvent):void {
+            //焦点获得时，光标移动到末尾
+            textInput.selectRange(textInput.text.length, textInput.text.length);
+        }
+
+        private function textInput_creationCompleteHandler(event:FlexEvent):void {
+            textInput.enabled = _ieditable == 0 ? (owner as CardBox).editable : _ieditable == 1 ? true : false;
+            deleteButton.visible = textInput.enabled && showDeleteButton;
+            deleteButton.includeInLayout = deleteButton.visible;
+        }
+
+        private function deleteButton_clickHandler(event:MouseEvent):void {
+            dispatchEvent(new Event("delete"));
+        }
+        ]]></fx:Script>
+</s:VGroup>

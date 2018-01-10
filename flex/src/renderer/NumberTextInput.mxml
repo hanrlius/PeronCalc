@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!--
+  Created by Administrator on 2014/6/21.
+-->
+<s:TextInput xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+             softKeyboardType="{CRMtool.isIOS()?'punctuation':'number'}"  width="100%" skinClass="spark.skins.spark.TextInputSkin">
+    <fx:Script><![CDATA[
+        import tools.CRMtool;
+        ]]></fx:Script>
+</s:TextInput>

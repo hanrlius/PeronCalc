@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<!--
+  Created by user on 2014/6/19.
+-->
+<basic:BasicView xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark" xmlns:basic="basic.*"
+        creationComplete="creationCompleteHandler(event)" title="{data.姓名}">
+    <basic:layout>
+        <s:VerticalLayout/>
+    </basic:layout>
+    <s:HGroup width="100%" paddingLeft="3" paddingRight="3" paddingTop="3">
+        <s:VGroup width="100%" height="100%">
+            <s:HGroup width="100%" verticalAlign="middle" visible="false" includeInLayout="false">
+                <s:Label text="工号:" baselineShift="-5"/>
+                <s:TextInput id="codeInput" width="260" focusIn="codeInput.selectAll()" editable="false"
+                             focusEnabled="false"/>
+            </s:HGroup>
+            <s:HGroup width="100%" verticalAlign="middle" height="100%">
+                <s:Label text="年月:" baselineShift="-5"/>
+                <basic:DateTextInput id="yearAndDateTextInput" width="260" height="90%"
+                                     mode="{DateTextInput.YearAndMonth}"/>
+            </s:HGroup>
+        </s:VGroup>
+        <s:Button id="searchButton" label="查询" width="100%" height="100%"
+                  click="searchButton_clickHandler(event)"/>
+    </s:HGroup>
+    <s:DataGrid id="grid" width="100%" height="100%" typicalItem="{defaultItem}">
+        <s:columns>
+            <s:ArrayList>
+                <s:GridColumn dataField="日期" labelFunction="CRMtool.labelFunctionFormatDateOnlyDay"/>
+                <s:GridColumn dataField="安全" labelFunction="CRMtool.formatFloat"
+                              headerText="安全:{CRMtool.round(aqSum,2)}"/>
+            </s:ArrayList>
+        </s:columns>
+    </s:DataGrid>
+    <fx:Script><![CDATA[
+        import mx.collections.ArrayCollection;
+        import mx.events.FlexEvent;
+        import mx.rpc.events.ResultEvent;
+
+        import tools.AccessUtil;
+        import tools.CRMmodel;
+        import tools.CRMtool;
+        import tools.DateHadle;
+
+        private var defaultItem:Object = {日期: "31", 安全: '100.00'};
+
+
+        [Bindable]
+        private var aqSum:Number = 0;
+
+        private function searchButton_clickHandler(event:MouseEvent):void {
+            search();
+        }
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+
+            //title = "得分台账：" + data.姓名
+
+            if (CRMtool.isStringNotNull(data.工号)) {
+                codeInput.text = data.工号;
+            } else {
+                codeInput.text = CRMmodel.user.职工编码;
+            }
+
+            if (CRMtool.isStringNotNull(data.date)) {
+                var date:String = data.date;
+                yearAndDateTextInput.text = CRMtool.getFormatDateString("YYYY-MM", DateHadle.stringToDate(date, "YYYY-MM-DD"))
+            }
+
+            search();
+        }
+
+        private function search() {
+            var code = codeInput.text;
+            var begin = DateHadle.getFirstOfMonth(DateHadle.stringToDate(yearAndDateTextInput.text + "-01", "YYYY-MM-DD"));
+            var end = DateHadle.getEndOfMonth(DateHadle.stringToDate(yearAndDateTextInput.text + "-01", "YYYY-MM-DD"));
+
+            AccessUtil.remoteCallJava("core", "queryAnquanTaizhang", function (e:ResultEvent):void {
+                var ac:ArrayCollection = e.result as ArrayCollection;
+                grid.dataProvider = ac
+
+                aqSum = 0;
+                for each(var item:Object in ac) {
+                    aqSum += CRMtool.getNumber(item.安全);
+                }
+            }, {code: code, begin: begin, end: end }, true);
+        }
+        ]]></fx:Script>
+</basic:BasicView>

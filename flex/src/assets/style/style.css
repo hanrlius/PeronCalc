@@ -1,0 +1,164 @@
+@namespace "library://ns.adobe.com/flex/spark";
+@namespace basic "basic.*";
+@namespace dafen "views.dafen.*";
+
+ActionBar {
+    chromeColor: #0098FE;
+    defaultButtonAppearance: normal;
+    skinClass: ClassReference("assets.skins.MyActionBarSkin");
+    textShadowAlpha: .65;
+    textShadowColor: white;
+    titleAlign: center;
+    paddingBottom: 1;
+    paddingLeft: 0;
+    paddingRight: 0;
+    paddingTop: 1;
+}
+
+ActionBar #titleDisplay {
+    color: white;
+    fontFamily: sans;
+}
+
+ActionBar.beveled {
+    paddingLeft: 7;
+    paddingRight: 7;
+    titleAlign: center;
+}
+
+ActionBar ButtonBase {
+    color: #333333;
+    fontFamily: sans;
+}
+
+@media (application-dpi: 240) {
+    ActionBar #titleDisplay {
+        fontSize: 30;
+    }
+}
+
+@media (application-dpi: 320) {
+    ActionBar #titleDisplay {
+        fontSize: 35;
+    }
+}
+
+ActionBar Group#actionGroup Button {
+    /*skinClass: ClassReference("assets.skins.MyTransparentActionButtonSkin");*/
+    /*fontWeight: bold;*/
+}
+
+ActionBar Group#navigationGroup Button {
+    skinClass: ClassReference("assets.skins.MyTransparentActionButtonSkin");
+    /*fontWeight: bold;*/
+}
+
+ActionBar Group#actionGroup Button:down {
+    chromeColor: #0098FE;
+}
+
+ActionBar Group#navigationGroup Button:down {
+    chromeColor: #0098FE;
+}
+
+Button {
+    skinClass: ClassReference("assets.skins.FlatButtonSkin");
+    textAlign: center;
+    color: white;
+    fontSize: 36px;
+    chromeColor: #0086e6;
+}
+
+@media (application-dpi: 120) {
+    Button {
+        fontSize: 24px;
+    }
+
+}
+
+@media (application-dpi: 160) {
+    Button {
+        fontSize: 24px;
+    }
+
+}
+
+@media (application-dpi: 240) {
+    Button {
+        fontSize: 28px;
+    }
+
+}
+
+@media (application-dpi: 320) {
+    Button {
+        fontSize: 36px;
+    }
+
+}
+
+@media (application-dpi: 480) {
+    Button {
+        fontSize: 40px;
+    }
+
+}
+
+@media (application-dpi: 640) {
+    Button {
+        fontSize: 44px;
+    }
+
+}
+
+basic|NoBorderButton {
+    /*   skinClass: ClassReference("assets.skins.NoBorderButtonSkin");*/
+    textAlign: right;
+    chromeColor: white;
+}
+
+basic|CardBox {
+    backgroundColor: white;
+    borderColor: #bcbcbc;
+    borderWeight: 2;
+    borderAlpha: 1;
+    borderStyle: solid;
+    cornerRadius: 8;
+}
+
+basic|BasicTextInput {
+    paddingBottom: 9;
+    paddingLeft: 9;
+    paddingRight: 9;
+    paddingTop: 9;
+    showPromptWhenFocused: true;
+    skinClass: ClassReference("spark.skins.mobile.ScrollingStageTextInputSkin");
+}
+
+.queryButton {
+    chromeColor: #98d538;
+}
+
+DataGrid {
+    skinClass: ClassReference("assets.skins.MyDataGridSkin");
+}
+
+@media (application-dpi: 240) {
+    .moreButton:up {
+        icon: Embed(source="/assets/dpi_240/more.png");
+    }
+
+    .moreButton:down {
+        icon: Embed(source="/assets/dpi_240/more_down.png");
+    }
+}
+
+@media (application-dpi: 320) {
+    .moreButton:up {
+        icon: Embed(source="/assets/dpi_320/more.png");
+    }
+
+    .moreButton:down {
+        icon: Embed(source="/assets/dpi_320/more_down.png");
+    }
+}

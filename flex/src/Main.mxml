@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ViewNavigatorApplication xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                            creationComplete="creationCompleteHandler(event)"
+                            firstView="views.MainView"
+                            backgroundColor="0x0080e0"
+                            splashScreenImage="basic.MySplashScreen"
+                            title=""
+                            keyDown="myKeyDownHandler(event)">
+    <fx:Style source="assets/style/style.css"/>
+    <s:navigationContent>
+        <s:Button id="homeButton" label="首页" color="white" click="homeButton_clickHandler(event)"/>
+    </s:navigationContent>
+    <s:actionContent>
+        <!--        <s:Button id="logoutButton" label="{MainView._loginType==0?'退出':'注销'}" color="white"
+                          visible="{MainView._loginType!=2}"
+                          includeInLayout="{MainView._loginType!=2}"
+                          click="logoutButton_clickHandler(event)"/>-->
+        <s:CalloutButton id="calloutButton"
+                         styleName="moreButton"
+                         verticalPosition="before"
+                         horizontalPosition="middle"
+                         emphasized="true" chromeColor="#0372C0">
+            <!-- Setting callout layout to "VerticalLayout" -->
+            <s:calloutLayout>
+                <s:VerticalLayout gap="1"/>
+            </s:calloutLayout>
+            <!-- Setting a set of components to callout's content as an Array -->
+            <s:calloutContent>
+                <s:Button label="返回上级" chromeColor="#2EDF94" click="button2_clickHandler(event)"/>
+                <s:Button label="修改密码" visible="{MainView._loginType==2}"
+                          includeInLayout="{MainView._loginType==2}" chromeColor="#2EDF94"
+                          click="navigator.pushView(ChangePW)"/>
+                <s:Button label="切换用户" chromeColor="#2EDF94" click="button1_clickHandler(event)"/>
+                <s:Button label="注销退出" chromeColor="#2EDF94" click="logoutButton_clickHandler(event)"/>
+            </s:calloutContent>
+        </s:CalloutButton>
+    </s:actionContent>
+    <fx:Script><![CDATA[
+        import mx.core.FlexGlobals;
+        import mx.events.FlexEvent;
+        import mx.rpc.events.ResultEvent;
+
+        import spark.components.Alert;
+
+        import spark.components.DataGrid;
+
+        import tools.AccessUtil;
+        import tools.CRMmodel;
+        import tools.CRMtool;
+        import tools.Server;
+
+        import views.ChangePW;
+        import views.ConfigView;
+        import views.MainView;
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            CRMmodel.platform = CRMmodel.ane.platform;
+            CRMmodel.设备标识 = CRMmodel.platform + " *** " + CRMtool.getIMEI();
+
+            if (CRMtool.isStringNull(Server.ip)) {
+                Server.ip = "120.194.194.91";
+                Server.port = "3808" + CRMmodel.cc;
+                Server.contextRoot = "";
+
+                if (CRMmodel.debug) {
+//                    Server.ip = "www.microstarsoft.com";
+//                    Server.port = "88";
+//                    Server.contextRoot = "bzhs"
+
+                    Server.ip = "192.168.180.208";
+                    Server.port = "38080";
+                    Server.contextRoot = ""
+                }
+            }
+
+            if (!CRMmodel.debug) {
+                AccessUtil.remoteCallJava("core", "getVersion", function (e:ResultEvent):void {
+                    var version:String = e.result + "";
+                    //Alert.show(version)
+                    if (version != CRMtool.getCurrentVersion()) {
+                        CRMtool.showAlert("\t发现新版本，建议通过WIFI环境下载，\n现在下载点击确定，点击取消退出程序。", function () {
+                            navigateToURL(new URLRequest(Server.basicUrl + "/index.html"));
+                        }, function () {
+                            CRMtool.exit();
+                        });
+                    }
+                });
+            }
+
+            AccessUtil.remoteCallJava("core", "testDatetime", function (e:ResultEvent):void {
+                var flag:Boolean = e.result as Boolean
+                if (!flag) {
+                    CRMtool.showAlert("检测到你手机时间与服务器时间不一致，请更正。", function () {
+                        CRMtool.exit()
+                    });
+                }
+            }, new Date());
+
+        }
+
+        private function homeButton_clickHandler(event:MouseEvent):void {
+            if (navigator.activeView is ConfigView) {
+                navigator.popToFirstView()
+            } else {
+                clearGridData()
+                navigator.popToFirstView()
+            }
+        }
+
+        private function logoutButton_clickHandler(event:MouseEvent):void {
+            /*if (MainView._loginType == 0) {
+             navigator.pushView(ConfigView);
+             } else {
+             CRMtool.showAlert(MainView._loginType == 1 ? "注销后将不能接受推送消息,是否继续？" : '', function () {
+             CRMtool.stopService();
+             CRMtool.cleanSharedObject();
+             CRMtool.exit();
+             }, function () {
+             });
+             }*/
+            CRMtool.showAlert("注销后将不能接受推送消息,是否继续？",
+                    function () {
+                        AccessUtil.remoteCallJava("core", "logout", null, CRMmodel.user);
+                        CRMtool.stopService();
+                        CRMtool.cleanSharedObject();
+                        CRMtool.exit();
+                    }
+
+                    ,
+                    function () {
+                    }
+            )
+            ;
+        }
+
+        private function button1_clickHandler(event:MouseEvent):void {
+            AccessUtil.remoteCallJava("core", "logout", null, CRMmodel.user);
+            clearGridData()
+            navigator.popAll()
+            navigator.pushView(MainView)
+            CRMtool.cleanSharedObject();
+            MainView._loginType = 0
+        }
+
+        private function button2_clickHandler(event:MouseEvent):void {
+            navigator.popToFirstView()
+        }
+
+        private function myKeyDownHandler(event:KeyboardEvent):void {
+            if (Keyboard.BACK == event.keyCode) {
+                if (CRMmodel.popUpWindow != null) {
+                    //event.stopImmediatePropagation()
+                    //event.stopPropagation()
+                    event.preventDefault()
+                    return;
+                }
+
+                clearGridData()
+            }
+
+        }
+
+        private function clearGridData() {
+            var view = navigator.activeView
+
+
+            if (view.hasOwnProperty("grid")) {
+                var grid:DataGrid = view.grid;
+                if (grid) {
+                    grid.dataProvider = null;
+                }
+            }
+        }
+        ]]></fx:Script>
+</s:ViewNavigatorApplication>

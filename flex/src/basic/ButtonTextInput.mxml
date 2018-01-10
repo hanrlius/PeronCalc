@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!--
+  Created by Aruis on 2014/7/17.
+-->
+<s:TextInput xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+             text=""
+             contentBackgroundColor="{bgColor}"
+             mouseDown="mouseDownHandler(event)"
+             mouseUp="mouseUpHandler(event)"
+             mouseOut="mouseOutHandler(event)">
+    <fx:Metadata>
+        [Event(name="mychange", type="flash.events.Event")]
+    </fx:Metadata>
+    <fx:Script><![CDATA[
+        import mx.utils.ColorUtil;
+
+        [Bindable]
+        public var bgColor:uint = 0xFFFFFF;
+        private var _bgColorTemp:uint = uint.MAX_VALUE;
+
+
+        private function mouseDownHandler(event:MouseEvent):void {
+            bgColorTemp = bgColor;
+            bgColor = ColorUtil.adjustBrightness2(bgColor, -8);
+        }
+
+        private function mouseUpHandler(event:MouseEvent):void {
+            if (_bgColorTemp != uint.MAX_VALUE)
+                bgColor = _bgColorTemp;
+        }
+
+        private function mouseOutHandler(event:MouseEvent):void {
+            if (_bgColorTemp != uint.MAX_VALUE)
+                bgColor = _bgColorTemp;
+        }
+
+        public function set bgColorTemp(value:uint):void {
+            if (_bgColorTemp == uint.MAX_VALUE)
+                _bgColorTemp = value;
+        }
+        ]]></fx:Script>
+</s:TextInput>

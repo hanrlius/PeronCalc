@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<!--
+  Created by aruis on 14-2-10.
+-->
+<s:Button xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+          label="{basicLabel}" enabled="{status!=ING_STATUS}">
+    <fx:Script><![CDATA[
+        [Bindable]
+        public var basicLabel:String;
+        public var ingLabel:String;
+
+        public var sucLabel:String;
+        public var errLabel:String;
+
+        public static const BASIC_STATUS:int = 0;
+        public static const ING_STATUS:int = 1;
+        public static const SUCCESS_STATUS:int = 2;
+        public static const ERROR_STATUS:int = -1;
+
+        private var _status = BASIC_STATUS;
+
+        public function get superLabel():String {
+            if (status == BASIC_STATUS)
+                return basicLabel;
+            else if (status == ING_STATUS)
+                return basicLabel + ingLabel;
+            else if (status == SUCCESS_STATUS)
+                return basicLabel + sucLabel;
+            else if (status == ERROR_STATUS)
+                return basicLabel + errLabel;
+            return "ERROR";
+        }
+
+        [Bindable]
+        public function set status(value):void {
+            _status = value;
+            label = superLabel;
+        }
+
+        public function get status():* {
+            return _status;
+        }
+        ]]></fx:Script>
+</s:Button>

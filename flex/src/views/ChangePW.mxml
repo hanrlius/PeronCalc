@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!--
+  Created by liurui on 2014/7/25.
+-->
+<basic:BasicView xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                 xmlns:basic="basic.*">
+    <basic:layout>
+        <s:VerticalLayout horizontalAlign="center"/>
+    </basic:layout>
+    <s:VGroup width="80%" height="100%" gap="8" paddingTop="30">
+        <s:HGroup width="100%">
+            <s:Label text="用户名"/>
+        </s:HGroup>
+
+        <s:TextInput id="usernameInput" color="#444444" enabled="false" text="{CRMmodel.user.登录名}"/>
+
+        <s:HGroup width="100%">
+            <s:Label text="旧密码"/>
+        </s:HGroup>
+
+        <s:TextInput id="pwTextInput" color="#444444" displayAsPassword="true"/>
+
+        <s:HGroup width="100%">
+            <s:Label text="新密码"/>
+        </s:HGroup>
+
+        <s:TextInput id="newPwTextInput" color="#444444" displayAsPassword="true"/>
+
+        <s:HGroup width="100%">
+            <s:Label text="确认新密码"/>
+        </s:HGroup>
+
+        <s:TextInput id="newPwTextInput2" color="#444444" displayAsPassword="true"/>
+
+        <s:Spacer height="20"/>
+        <s:Button label="保存" width="100%" click="button1_clickHandler(event)"/>
+
+    </s:VGroup>
+    <fx:Script><![CDATA[
+        import mx.rpc.events.ResultEvent;
+
+        import tools.AccessUtil;
+        import tools.CRMmodel;
+        import tools.CRMtool;
+
+        private function button1_clickHandler(event:MouseEvent):void {
+            var opw:String = pwTextInput.text;
+            var npw:String = newPwTextInput.text;
+            var npw2:String = newPwTextInput2.text;
+
+            if (npw != npw2) {
+                CRMtool.showToast("新密码两次输入不一致，请检查。");
+                return;
+            }
+
+
+            AccessUtil.remoteCallJava("core", "cheackPW", function (e:ResultEvent):void {
+                CRMtool.showToast(e.result + "");
+            }, {username: CRMmodel.user.登录名, password: opw, newPassword: npw});
+        }
+        ]]></fx:Script>
+</basic:BasicView>

@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+<!--
+  Created by user on 2014/6/19.
+-->
+<basic:BasicView xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                 xmlns:basic="basic.*"
+                 creationComplete="creationCompleteHandler(event)" title="材料奖罚"
+                 destructionPolicy="never"
+>
+    <basic:layout>
+        <s:VerticalLayout/>
+    </basic:layout>
+    <s:HGroup width="100%" paddingLeft="3" paddingRight="3" paddingTop="3">
+        <s:VGroup width="100%">
+            <s:HGroup width="100%" verticalAlign="middle">
+                <s:Label text="日期:" baselineShift="-5"/>
+                <basic:DateTextInput id="dateInput"
+                                     mode="{DateTextInput.YearAndMonth}"
+                                     width="260" mychange="dateInput_changeHandler(event)"/>
+            </s:HGroup>
+        </s:VGroup>
+        <s:Button id="searchButton" label="明细" width="100%" height="100%"
+                  styleName="queryButton"
+                  click="searchButton_clickHandler(event)"/>
+    </s:HGroup>
+    <s:DataGrid id="grid" height="100%" width="100%" lineHeight="50" horizontalScrollPolicy="auto"
+                typicalItem="{typicalItem}" sortableColumns="false">
+        <s:columns>
+            <s:ArrayList>
+                <s:GridColumn dataField="部门"/>
+                <s:GridColumn dataField="收入" labelFunction="CRMtool.formatFloat"/>
+                <s:GridColumn dataField="支出" labelFunction="CRMtool.formatFloat"/>
+                <s:GridColumn dataField="结余" labelFunction="CRMtool.formatFloat"/>
+                <s:GridColumn dataField="兑现" labelFunction="CRMtool.formatFloat"/>
+            </s:ArrayList>
+        </s:columns>
+    </s:DataGrid>
+
+    <fx:Script><![CDATA[
+        import mx.collections.ArrayCollection;
+        import mx.events.FlexEvent;
+        import mx.rpc.events.ResultEvent;
+
+        import tools.AccessUtil;
+        import tools.CRMmodel;
+        import tools.CRMtool;
+
+        private var typicalItem:Object = {
+            部门: '四位字符',
+            收入: '123456789.000',
+            支出: '123456789.000',
+            结余: '123456789.000',
+            兑现: '123456789.000'
+        };
+        private var _sObj:Object;
+
+        private function searchButton_clickHandler(event:MouseEvent):void {
+            var item:Object = grid.selectedItem
+            if (item != null) {
+                grid.selectedIndex = -1;
+                _sObj.code = item.部门编码
+
+                var gw:CailiaoTaizhang = new CailiaoTaizhang();
+                gw.data = _sObj;
+                gw.show()
+            } else {
+                CRMtool.showToast("请先选择要查看的记录.");
+            }
+        }
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            var date:Date = new Date()
+            var year = date.fullYear;
+            var month = date.month;
+            if (month == 0) {
+                dateInput.text = (year - 1) + "-12";
+            } else if (month > 9) {
+                dateInput.text = year + "-" + month;
+            } else {
+                dateInput.text = year + "-0" + month;
+            }
+
+            search();
+        }
+
+        private function dateInput_changeHandler(event:Event):void {
+            search();
+        }
+
+        private function search():void {
+            var code = CRMmodel.user.登录名
+            var date = dateInput.text;
+            _sObj = {code: code, year: date.split("-")[0], month: date.split("-")[1]}
+
+            AccessUtil.remoteCallJava("core", "queryCailiao", function (e:ResultEvent):void {
+                grid.dataProvider = (e.result as ArrayCollection)
+            }, _sObj, true);
+        }
+
+        public function refresh():void {
+            grid.dataProvider = null;
+            search();
+            /*var ac:ArrayCollection = grid.dataProvider as ArrayCollection;
+             if (CRMtool.isListSizeNotZero(ac)) {
+             ac.refresh()
+             }*/
+        }
+
+        private function backKeyPressedHandler(event:FlexEvent):void {
+            //event.preventDefault()
+        }
+        ]]></fx:Script>
+</basic:BasicView>

@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<!--
+  Created by user on 2014/6/19.
+-->
+<basic:BasicView xmlns:fx="http://ns.adobe.com/mxml/2009"
+                 xmlns:views="views.*"
+                 destructionPolicy="never" creationComplete="creationCompleteHandler(event)" show="showHandler(event)"
+                 actionBarVisible="false"
+                 xmlns:basic="basic.*">
+
+    <views:_LoginNew id="login" visible="{_loginType==0}" includeInLayout="{_loginType==0}" parentView="{this}"/>
+    <!--<views:Ribao visible="{loginType==1}" includeInLayout="{loginType==1}"/>-->
+    <!--    <views:Luru visible="{loginType==2}" includeInLayout="{loginType==2}"/>-->
+
+    <fx:Script><![CDATA[
+        import mx.events.FlexEvent;
+
+        import tools.CRMmodel;
+        import tools.CRMtool;
+        import tools.ServiceTool;
+
+        import views.chaxun.ChaxunMain;
+        import views.luru.LuruMain;
+
+        [Bindable]
+        private static var luruEnabled:Boolean = false;
+        [Bindable]
+        public static var _loginType:int = 0;
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            CRMmodel.navigator = navigator;
+            CRMmodel.view = this;
+            var so:SharedObject = SharedObject.getLocal("personcalcSharedObject");
+            var username = so.data.username;
+            var code = so.data.code;
+            var password = so.data.password;
+            if (CRMtool.isStringNotNull(username)) {
+                ServiceTool.login({username: username, password: password}, this);
+                login.username = username
+            } else if (CRMtool.isStringNotNull(code)) {
+                ServiceTool.login({code: code}, this);
+                login.password = code
+            } else {
+                //login.codeInput.setFocus();
+            }
+        }
+
+        [Bindable]
+        public function  get loginType():int {
+            return _loginType;
+        }
+
+        public function set loginType(value:int):void {
+            if (value > 0) {
+                actionBarVisible = true;
+//                CRMtool.cleanSharedObject();
+
+                var so:SharedObject = SharedObject.getLocal("personcalcSharedObject");
+                if (value == 1) {
+                    so.data.code = CRMmodel.user.职工编码;
+                } else {
+                    so.data.username = CRMmodel.user.登录名;
+                    so.data.password = CRMmodel.user.password;
+                }
+
+                so.flush();
+
+                if (value == 1) {
+                    title = "个人查询";
+                    var cxMain:ChaxunMain = new ChaxunMain();
+                    this.addElement(cxMain);
+                    //navigator.pushView(Ribao)
+
+                } else if (value == 2) {
+                    title = "班组核算";
+                    var lrMain:LuruMain = new LuruMain();
+                    this.addElement(lrMain)
+                }
+            }
+            _loginType = value;
+            CRMmodel.user.设备标识 = CRMmodel.设备标识;
+        }
+
+        private function showHandler(event:FlexEvent):void {
+//            if (loginType == 1 && numElements == 2 && getElementAt(1) != null) {
+//                var ribao:Ribao = getElementAt(1) as Ribao
+//                ribao.refresh()
+//            }
+        }
+        ]]></fx:Script>
+</basic:BasicView>

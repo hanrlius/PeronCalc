@@ -1,0 +1,535 @@
+<?xml version="1.0"?>
+<!--
+  Created by user on 2014/6/19.
+-->
+<basic:BasicView xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                 xmlns:basic="basic.*"
+                 creationComplete="creationCompleteHandler(event)">
+    <fx:Declarations>
+    </fx:Declarations>
+    <basic:layout>
+        <s:VerticalLayout/>
+    </basic:layout>
+
+    <s:VGroup width="100%" gap="12" paddingRight="6" paddingLeft="6">
+        <s:HGroup width="100%" paddingTop="5" gap="12">
+            <s:HGroup width="100%" verticalAlign="middle">
+                <s:Label text="部门:" baselineShift="-5"/>
+                <basic:SelectTextInput id="departmentSelectTextInput" width="100%"
+                                       mychange="_changeHandler(event)"/>
+            </s:HGroup>
+            <s:HGroup width="100%" verticalAlign="middle">
+                <s:Label text="日期:" baselineShift="-5"/>
+                <basic:DateTextInput id="dateInput" text="{CRMtool.formatDateNoHNS(new Date())}" width="100%"
+                                     winText="请您确认打分日期"
+                                     mychange="_changeHandler(event)" isMaxToday="true"/>
+            </s:HGroup>
+        </s:HGroup>
+        <s:VGroup width="100%" visible="{!isDo}" includeInLayout="{!isDo}"
+                  horizontalAlign="center" gap="10"
+                  paddingTop="10" paddingBottom="10">
+            <s:HGroup width="100%">
+                <s:CheckBox id="shurufaCheckBox" width="100%" label="输入法跟随"/>
+                <s:CheckBox id="kuaijieCheckBox" width="100%" label="快捷保存下移"/>
+            </s:HGroup>
+            <s:HGroup width="100%">
+                <s:Button label="开始打分（{gridList!=null?gridList.length+'':'0'}人）"
+                          width="100%"
+                          click="button1_clickHandler(event)"
+                          enabled="{gridList.length>0 &amp;&amp; departmentSelectTextInput.selectItem!=null &amp;&amp; !CRMtool.getBoolean(departmentSelectTextInput.selectItem.是否区队)}"/>
+                <s:Button label="追加" click="addButton_clickHandler(event)"
+                          enabled="{departmentSelectTextInput.selectItem!=null &amp;&amp; !CRMtool.getBoolean(departmentSelectTextInput.selectItem.是否区队)}"
+                />
+                <s:Button label="删除" click="removeButton_clickHandler(event)"
+                          enabled="{departmentSelectTextInput.selectItem!=null &amp;&amp; !CRMtool.getBoolean(departmentSelectTextInput.selectItem.是否区队)}"
+                />
+            </s:HGroup>
+
+        </s:VGroup>
+        <s:VGroup id="doGroup" width="100%"
+                  visible="{isDo &amp;&amp; grid.selectedIndex>-1}"
+                  includeInLayout="{isDo &amp;&amp;grid.selectedIndex>-1}">
+            <s:HGroup width="100%">
+                <s:CheckBox id="jxNullCheckBox" width="100%" label="绩效未打[{jxNullNum}]"
+                            change="nullCheckBox_changeHandler()"/>
+                <s:CheckBox id="aqNullCheckBox" width="100%" label="安全未打[{aqNullNum}]"
+                            change="nullCheckBox_changeHandler()"/>
+            </s:HGroup>
+            <s:HGroup verticalAlign="middle" width="100%">
+                <s:VGroup width="100%" gap="6">
+                    <s:HGroup verticalAlign="middle" width="100%">
+                        <s:Label text="绩效:" baselineShift="-5"/>
+                        <s:TextInput id="jixiaoInput" width="100%"
+                                     softKeyboardType="{CRMtool.isIOS()?'punctuation':'number'}"
+                                     text="{grid.selectedItem!=null ? CRMtool.roundFloatString(grid.selectedItem.绩效):''}"
+                                     focusIn="valueInput_focusInHandler(event)"/>
+                    </s:HGroup>
+                    <s:TileGroup id="jixiaoGroup" width="100%" requestedColumnCount="4" horizontalGap="4"/>
+                    <s:HGroup verticalAlign="middle" width="100%">
+                        <s:Label text="安全:" baselineShift="-5"/>
+                        <s:TextInput id="anquanInput" width="100%"
+                                     softKeyboardType="{CRMtool.isIOS()?'punctuation':'number'}"
+                                     text="{grid.selectedItem!=null ? CRMtool.roundFloatString(grid.selectedItem.安全):''}"
+                                     focusIn="valueInput_focusInHandler(event)"/>
+                    </s:HGroup>
+                    <s:TileGroup id="anquanGroup" width="100%" requestedColumnCount="4" horizontalGap="4"/>
+                </s:VGroup>
+                <s:Spacer width="10"/>
+                <s:VGroup height="100%" verticalAlign="middle" gap="10">
+                    <s:Button id="preButton" label="{'撤销上移'}" height="100%"
+                              visible="false" includeInLayout="false"
+                              click="preOrNextButton_clickHandler(event)"/>
+                    <s:Button id="nextButton" label="保存下移" height="100%" click="preOrNextButton_clickHandler(event)"/>
+                </s:VGroup>
+            </s:HGroup>
+
+        </s:VGroup>
+        <s:HGroup width="100%" verticalAlign="middle">
+            <s:Label text="快速定位人员："/>
+            <s:TextInput id="searchInput" width="100%" height="100%" focusIn="searchInput.selectAll()"
+                         change="searchInput_changeHandler(event)"/>
+            <s:Button id="clearButton" label="清除"
+                      enabled="{CRMtool.isStringNotNull(searchInput.text)}"
+                      click="searchInput.text=''"/>
+        </s:HGroup>
+    </s:VGroup>
+
+
+    <s:DataGrid id="grid" width="100%" height="100%" lineHeight="50" selectionChange="getTitle()"
+                dataProvider="{gridList}"
+                typicalItem="{typicalItem}" sortableColumns="false">
+        <s:columns>
+            <s:ArrayList>
+                <s:GridColumn dataField="工号"/>
+                <s:GridColumn dataField="姓名"/>
+                <s:GridColumn dataField="绩效" labelFunction="CRMtool.formatFloat"/>
+                <s:GridColumn dataField="安全" labelFunction="CRMtool.formatFloat"/>
+            </s:ArrayList>
+        </s:columns>
+    </s:DataGrid>
+    <fx:Script><![CDATA[
+        import basic.window.ConsultSelectWindow;
+
+        import mx.collections.ArrayCollection;
+        import mx.events.CollectionEvent;
+        import mx.events.FlexEvent;
+        import mx.rpc.events.FaultEvent;
+        import mx.rpc.events.ResultEvent;
+        import mx.utils.StringUtil;
+
+        import spark.events.TextOperationEvent;
+
+        import tools.AccessUtil;
+        import tools.CRMmodel;
+        import tools.CRMtool;
+        import tools.ServiceTool;
+
+        private var typicalItem:Object = {姓名: '四位字符', 工号: '123456789', 绩效: '100.00', 安全: '100.00'};
+        [Bindable]
+        private var isDo:Boolean = false;
+
+        private var jixiaoScoreList:ArrayCollection = new ArrayCollection();
+        private var anquanScoreList:ArrayCollection = new ArrayCollection();
+
+        [Bindable]
+        private var jxNullNum:int = 0;
+
+        [Bindable]
+        private var aqNullNum:int = 0;
+        [Bindable]
+        private var gridList:ArrayCollection = new ArrayCollection();
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            AccessUtil.remoteCallJava("core", "getDepartmentGeren", function (e:ResultEvent):void {
+                var list:ArrayCollection = e.result as ArrayCollection
+                departmentSelectTextInput.dataProvider = list;
+                if (CRMtool.isListSizeNotZero(list)) {
+                    departmentSelectTextInput.selectItem = list[0];
+                }
+            }, {code: CRMmodel.user.登录名}, false)
+
+            gridList.addEventListener(CollectionEvent.COLLECTION_CHANGE, _collectionChangeHandler)
+            basicList.addEventListener(CollectionEvent.COLLECTION_CHANGE, _collectionChangeHandler);
+
+            function _collectionChangeHandler(event:CollectionEvent):void {
+                jxNullNum = basicList.length;
+                aqNullNum = basicList.length;
+                for each(var item:Object in basicList) {
+                    if (CRMtool.isStringNotNull(item.绩效)) {
+                        jxNullNum--
+                    }
+                    if (CRMtool.isStringNotNull(item.安全)) {
+                        aqNullNum--
+                    }
+                }
+            }
+
+
+            dateInput.open();
+        }
+
+        private var duiCode:String = ""
+
+        private function _changeHandler(event:Event):void {
+            duiCode = ""
+            isDo = false
+            grid.grid.verticalScrollPosition = 0;
+            grid.editable = false;
+            aqNullCheckBox.selected = false;
+            jxNullCheckBox.selected = false;
+            if (departmentSelectTextInput.selectItem == null) {
+                return
+            }
+            AccessUtil.remoteCallJava("core", "getDepartmentDafenPersons", function (e:ResultEvent):void {
+                gridList.removeAll()
+                basicList.removeAll()
+                gridList.addAll(e.result as ArrayCollection)
+                basicList.addAll(gridList)
+            }, {code: departmentSelectTextInput.selectItem.部门编码, date: dateInput.text}, true);
+
+            AccessUtil.remoteCallJava("core", "getDuiCode", function (e:ResultEvent):void {
+                duiCode = e.result + ""
+            }, {code: departmentSelectTextInput.selectItem.部门编码}, true);
+        }
+
+
+        private function preOrNextButton_clickHandler(event:MouseEvent):void {
+            saveAndNext(event.currentTarget as Button)
+        }
+
+        public function saveAndNext(button:Button) {
+            var selectedIndex:int = grid.selectedIndex;
+            if (button == preButton) {
+                //grid.selectedItem.考勤情况 = ""
+                if (selectedIndex > 0) {
+                    grid.selectedIndex--
+                }
+            } else {
+                var aqChange:Boolean = false;
+                var jxChange:Boolean = false;
+                if (CRMtool.getNumber(grid.selectedItem.安全) != CRMtool.getNumber(anquanInput.text)) {
+                    aqChange = true
+                    grid.selectedItem.安全 = anquanInput.text;
+
+                    var catchItem:Object = null;
+                    for each(var item:Object in anquanScoreList) {
+                        if (CRMtool.getNumber(item.score) == CRMtool.getNumber(anquanInput.text)) {
+                            catchItem = item
+                            break;
+                        }
+                    }
+                    if (catchItem != null) {
+                        anquanScoreList.removeItem(catchItem)
+                    }
+                    anquanScoreList.addItemAt({score: anquanInput.text}, 0)
+                }
+                if (CRMtool.getNumber(grid.selectedItem.绩效) != CRMtool.getNumber(jixiaoInput.text)) {
+                    jxChange = true
+                    grid.selectedItem.绩效 = jixiaoInput.text
+
+                    var catchItem:Object = null;
+                    for each(var item:Object in jixiaoScoreList) {
+                        if (CRMtool.getNumber(item.score) == CRMtool.getNumber(jixiaoInput.text)) {
+                            catchItem = item
+                            break;
+                        }
+                    }
+                    if (catchItem != null) {
+                        jixiaoScoreList.removeItem(catchItem)
+                    }
+                    jixiaoScoreList.addItemAt({score: jixiaoInput.text}, 0)
+                }
+                if (aqChange || jxChange) {
+                    saveItem(grid.selectedItem)
+                }
+
+                if (selectedIndex < (gridList.length - 1)) {
+                    grid.selectedIndex++
+                } else {
+                    CRMtool.showAlert("已到最后一行。")
+                }
+
+                if ((aqChange && aqNullCheckBox.selected ) || (jxChange && jxNullCheckBox.selected)) {
+                    nullCheckBox_changeHandler()
+                }
+            }
+
+            var ac:ArrayCollection = (gridList as ArrayCollection)
+            ac.refresh()
+
+            grid.ensureCellIsVisible(ac.getItemIndex(grid.selectedItem))
+            if (_input != null && shurufaCheckBox.selected) {
+                _input.setFocus()
+            }
+            getTitle()
+
+            refreshScoreButtons()
+        }
+
+        private function refreshScoreButtons():void {
+            var i:int = 0;
+            jixiaoGroup.removeAllElements()
+            anquanGroup.removeAllElements()
+            for each(var item:Object in jixiaoScoreList) {
+                if (i < 4) {
+                    var b:Button = new Button()
+                    b.label = item.score;
+                    b.percentWidth = 90
+                    b.addEventListener(MouseEvent.CLICK, function (e:MouseEvent) {
+                        jixiaoInput.text = e.currentTarget.label;
+                        if (kuaijieCheckBox.selected) {
+                            saveAndNext(nextButton)
+                        }
+                    })
+                    jixiaoGroup.addElementAt(b, 0);
+                } else {
+                    break;
+                }
+                i++;
+            }
+
+            i = 0
+            for each(var item:Object in anquanScoreList) {
+                if (i < 4) {
+                    var b:Button = new Button()
+                    b.label = item.score;
+                    b.percentWidth = 90
+                    b.addEventListener(MouseEvent.CLICK, function (e:MouseEvent) {
+                        anquanInput.text = e.currentTarget.label;
+                        if (kuaijieCheckBox.selected) {
+                            saveAndNext(nextButton)
+                        }
+                    })
+                    anquanGroup.addElementAt(b, 0);
+                } else {
+                    break;
+                }
+                i++;
+            }
+
+        }
+
+        private function saveItem(selectedItem:Object):void {
+            var jixiao:Object = {};
+            jixiao.日期 = dateInput.text;
+            jixiao.序号 = selectedItem.台账顺序;
+            jixiao.部门编码 = departmentSelectTextInput.selectItem.部门编码;
+            jixiao.部门名称 = departmentSelectTextInput.selectItem.部门名称;
+            jixiao.职工编码 = selectedItem.工号;
+            jixiao.职工姓名 = selectedItem.姓名;
+
+            jixiao.得分 = CRMtool.getNumber(selectedItem.绩效)
+            jixiao.录入人 = CRMmodel.user.登录名;
+            jixiao.录入人姓名 = CRMmodel.user.用户姓名;
+
+            jixiao.安全得分 = CRMtool.getNumber(selectedItem.安全)
+            jixiao.user = CRMtool.getSimpleUser()
+
+            AccessUtil.remoteCallJava("core", "save个人得分", function (e:ResultEvent):void {
+                var flag = e.result.flag;
+                if (flag) {
+                    //CRMtool.showToast("保存成功");
+                } else {
+                    _errFun(e)
+                }
+            }, jixiao, false, "", null, function (fe:FaultEvent):void {
+                _errFun()
+            })
+
+
+            function _errFun(e = null) {
+                var str = selectedItem.工号 + " " + selectedItem.姓名 + " 数据保存失败";
+                if (e != null && CRMtool.isStringNotNull(e.result.str)) {
+                    str += ("，原因：" + e.result.str);
+                }
+                CRMtool.showToast(str);
+
+                selectedItem.绩效 = ''
+                selectedItem.安全 = ''
+                var ac:ArrayCollection = (gridList as ArrayCollection)
+                ac.refresh()
+            }
+        }
+
+        private function getTitle():void {
+            title = grid.selectedItem.姓名
+        }
+
+        private function button1_clickHandler(event:MouseEvent):void {
+            if ((gridList as ArrayCollection).length > 0) {
+                ServiceTool.isDateAllow(dateInput.text, function () {
+                    isDo = true;
+                    grid.selectedIndex = 0
+                    getTitle()
+                })
+            }
+        }
+
+        private var _input:TextInput;//用来记录焦点
+        private function valueInput_focusInHandler(event:FocusEvent):void {
+            var input:TextInput = event.currentTarget as TextInput
+            _input = input;
+            input.selectAll()
+        }
+
+        private function addButton_clickHandler(event:MouseEvent):void {
+            ServiceTool.isDateAllow(dateInput.text, function () {
+                if (CRMtool.isStringNull(duiCode)) {
+                    CRMtool.showToast("请在系统中维护此班组的的“队”字段。")
+                    return
+                }
+
+                var cw:ConsultSelectWindow = new ConsultSelectWindow()
+                var s = "and 工作部门 != '" + duiCode + "'";
+                if (duiCode == departmentSelectTextInput.selectItem.部门编码) {
+                    s = ""
+                }
+
+                cw.sql = "select 职工姓名,职工编码,isnull(台账顺序,0) 台账顺序,职工.职工编码+','+职工姓名+','+部门.部门名称 as label from 职工" +
+                        " left join 部门 on 部门.部门编码 = 职工.工作部门 " +
+                        " where 职工.工作部门 " +
+                        " in (select 部门编码 from 部门 where isnull(禁用,0)!=1 and 部门编码 like '" + duiCode + "%')" +
+                        " and 职工.职工编码 not in (select 职工编码 from bzhsa核算明细_个人得分 where 日期='" + dateInput.text + "' and 部门编码='" + departmentSelectTextInput.selectItem.部门编码 + "'  )" +
+                        s +
+                        " and 工作部门 not in (select 部门编码 from 部门 where 部门名称='离职员工')" +
+                        " and 职工.拼音 like '%@param@%'" +
+                        " order by 职工.工作部门,职工.台账顺序";
+                cw.cconsultswfld = "label";
+                cw.addEventListener("onSubmitEvent", function (e:Event) {
+                    var item:Object = cw.list.selectedItem;
+                    if (item == null) {
+                        CRMtool.showToast("请先选择一条记录。")
+                    } else {
+                        var list:ArrayCollection = gridList as ArrayCollection
+                        if (list == null) {
+                            list = new ArrayCollection()
+                        }
+                        for each(var i:Object in list) {
+                            if (i.工号 == item.职工编码) {
+                                CRMtool.showToast("此人已存在，无需添加。")
+                                return;
+                            }
+                        }
+
+                        AccessUtil.remoteCallJava("core", "getPersonCalcToday", function (e:ResultEvent):void {
+                            var obj = e.result
+                            var jixiao = obj.jixiao + ""
+                            var anquan = obj.anquan + ""
+
+                            if (jixiao == "0" && anquan == "0") {
+                                var _item = {
+                                    工号: item.职工编码,
+                                    姓名: item.职工姓名,
+                                    台账顺序: item.台账顺序,
+                                    绩效: null,
+                                    安全: null,
+                                    isFirst: true
+                                }
+                                list.addItem(_item)
+                                basicList.addItem(_item);
+                                //saveItem(_item)
+                                gridList = list;
+                                grid.grid.verticalScrollPosition = grid.grid.contentHeight - grid.grid.height
+                            } else {
+                                CRMtool.showToast("此人今日已在" + obj.bumen + "有得分，您无法添加。")
+                            }
+                        }, {code: item.职工编码, date: dateInput.text}, false)
+                    }
+                })
+                cw.show()
+            })
+        }
+
+        private function removeButton_clickHandler(event:MouseEvent):void {
+            ServiceTool.isDateAllow(dateInput.text, function () {
+                var item:Object = grid.selectedItem
+                if (item == null) {
+                    CRMtool.showToast("请先选择一条记录。")
+                } else {
+                    var s:String;
+                    if (item.绩效 > 0 || item.安全 > 0) {
+                        s = "如果点击确定，将清空选择记录的数据。"
+                    } else {
+                        s = "确定要删除所选的行？"
+                    }
+
+
+                    CRMtool.showAlert(s, function () {
+                        _removeItem()
+                    }, function () {
+                    })
+                }
+
+                function _removeItem():void {
+                    AccessUtil.remoteCallJava("core", "removeGerenItem", function (e:ResultEvent):void {
+                        if (e.result as Boolean) {
+                            CRMtool.showToast("删除成功。")
+                            var list:ArrayCollection = gridList as ArrayCollection
+                            list.removeItem(item)
+                            basicList.removeItem(item);
+                            gridList = list;
+                        } else {
+                            CRMtool.showToast("删除失败。")
+                        }
+                    }, {
+                        职工编码: item.工号,
+                        日期: dateInput.text,
+                        部门编码: departmentSelectTextInput.selectItem.部门编码,
+                        user: CRMtool.getSimpleUser()
+                    }, false)
+
+
+                }
+            })
+        }
+
+        var basicList:ArrayCollection = new ArrayCollection()
+
+        private function nullCheckBox_changeHandler():void {
+            gridList.removeAll()
+            if (jxNullCheckBox.selected == false && aqNullCheckBox.selected == false) {
+                gridList.addAll(basicList);
+            } else {
+                for each(var item:Object in basicList) {
+                    var isAdd:Boolean = false;
+                    if (CRMtool.isStringNull(item.绩效) && jxNullCheckBox.selected) {
+                        gridList.addItem(item);
+                        isAdd = true;
+                    }
+                    if (CRMtool.isStringNull(item.安全) && aqNullCheckBox.selected && !isAdd) {
+                        gridList.addItem(item)
+                    }
+                }
+            }
+
+            if (gridList.length > 0) {
+                grid.selectedIndex = 0
+                getTitle()
+            }
+            grid.grid.verticalScrollPosition = 0
+
+        }
+
+        private function searchInput_changeHandler(event:TextOperationEvent):void {
+            var ac:ArrayCollection = grid.dataProvider as ArrayCollection;
+            var text:String = StringUtil.trim(searchInput.text);
+            if (text == "")
+                return;
+
+            text.split(" ")[0]
+
+            if (CRMtool.isListSizeNotZero(ac)) {
+                for each(var item:Object in ac) {
+                    var pinyin:String = item.pinyin + "";
+                    if (pinyin.indexOf(text) > -1) {
+                        grid.ensureCellIsVisible(ac.getItemIndex(item));
+                        grid.selectedItem = item;
+                        getTitle();
+                        break;
+                    }
+                }
+            }
+
+        }
+        ]]></fx:Script>
+</basic:BasicView>

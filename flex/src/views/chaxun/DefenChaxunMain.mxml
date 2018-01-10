@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+  Created by Aruis on 2014/7/15.
+-->
+<basic:BasicView xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                 xmlns:basic="basic.*">
+    <s:VGroup width="100%" height="100%" verticalAlign="middle" horizontalAlign="center"
+              paddingTop="{mygap}" paddingBottom="{mygap}" gap="{mygap}" paddingRight="{mygap}" paddingLeft="{mygap}">
+        <s:Button label="个人绩效得分" width="100%" height="100%" click="CRMmodel.navigator.pushView(JixiaoChaxun)"/>
+        <s:Button label="个人安全得分" width="100%" height="100%" click="CRMmodel.navigator.pushView(AnquanChaxun)"/>
+    </s:VGroup>
+    <fx:Script><![CDATA[
+        import tools.CRMmodel;
+
+        private var mygap:Number = 12;
+        ]]></fx:Script>
+</basic:BasicView>

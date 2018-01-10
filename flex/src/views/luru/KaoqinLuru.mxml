@@ -1,0 +1,309 @@
+<?xml version="1.0"?>
+<!--
+  Created by user on 2014/6/19.
+-->
+<basic:BasicView xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+                 xmlns:basic="basic.*"
+                 creationComplete="creationCompleteHandler(event)">
+    <fx:Declarations>
+        <s:RadioButtonGroup id="typeRadioButtonGroup"/>
+    </fx:Declarations>
+    <basic:layout>
+        <s:VerticalLayout/>
+    </basic:layout>
+    <s:VGroup width="100%" paddingRight="6" paddingLeft="6">
+        <s:HGroup width="100%" paddingTop="5" gap="12">
+            <s:HGroup width="100%" verticalAlign="middle">
+                <s:Label text="部门:" baselineShift="-5"/>
+                <basic:SelectTextInput id="departmentSelectTextInput" width="100%"
+                                       mychange="_changeHandler()"/>
+            </s:HGroup>
+            <s:HGroup width="100%" verticalAlign="middle">
+                <s:Label text="日期:" baselineShift="-5"/>
+                <basic:DateTextInput id="dateInput" text="{CRMtool.formatDateNoHNS(new Date())}" width="100%"
+                                     mychange="_changeHandler()" isMaxToday="true"/>
+            </s:HGroup>
+        </s:HGroup>
+        <s:VGroup width="100%" visible="{!isDo}" includeInLayout="{!isDo}"
+                  horizontalAlign="center"
+                  paddingTop="10" paddingBottom="10">
+            <s:Button label="开始考勤（{grid.dataProvider!=null?grid.dataProvider.length+'':'0'}）" width="90%" height="80"
+                      click="button1_clickHandler(event)"
+                      enabled="{CRMtool.isListSizeNotZero(grid.dataProvider)}"/>
+        </s:VGroup>
+        <s:VGroup width="100%" height="100%" visible="{isShow &amp;&amp; isDo}"
+                  includeInLayout="{isShow &amp;&amp; isDo}">
+            <s:Button width="100%" label="隐藏默认考勤类别" click="button2_clickHandler(event)"/>
+        </s:VGroup>
+        <s:HGroup id="doGroup" width="100%" verticalAlign="middle"
+                  visible="{isDo &amp;&amp; grid.selectedIndex>-1 &amp;&amp; isShow}"
+                  includeInLayout="{isDo &amp;&amp;grid.selectedIndex>-1 &amp;&amp; isShow}">
+            <s:Scroller height="{stage.height*0.6}" width="100%">
+                <s:TileGroup id="typeGroup" width="100%" creationComplete="typeGroup_creationCompleteHandler(event)"
+                             requestedColumnCount="2" enabled="{grid.selectedItem!=null}"/>
+            </s:Scroller>
+
+            <s:VGroup height="80%" verticalAlign="middle" gap="20" paddingRight="10">
+                <s:Button id="preButton" label="{'撤销\n上移'}" width="120" height="100%"
+                          click="preOrNextButton_clickHandler(event)"/>
+                <s:Button id="nextButton" label="{'保存\n下移'}" width="120" height="100%"
+                          click="preOrNextButton_clickHandler(event)"/>
+            </s:VGroup>
+        </s:HGroup>
+        <s:VGroup width="100%" height="100%" visible="{!isShow &amp;&amp; isDo}"
+                  includeInLayout="{!isShow &amp;&amp; isDo}">
+            <s:Button width="100%" label="当前考勤类别：{selectItem.考勤名称}， 单击可变更" click="isShow=true"/>
+            <s:HGroup width="100%" gap="10">
+                <s:Button id="preButton2" label="上移" width="100%" click="preOrNextButton_clickHandler(event)"/>
+                <s:Button id="nextButton2" label="保存下移" width="100%" click="preOrNextButton_clickHandler(event)"/>
+            </s:HGroup>
+        </s:VGroup>
+        <s:HGroup width="100%" verticalAlign="middle" visible="{!doGroup.visible}" includeInLayout="{!doGroup.visible}">
+            <s:Label text="快速定位人员："/>
+            <s:TextInput id="searchInput" width="100%" height="100%" focusIn="searchInput.selectAll()"
+                         change="searchInput_changeHandler(event)"/>
+            <s:Button id="clearButton" label="清除"
+                      enabled="{CRMtool.isStringNotNull(searchInput.text)}"
+                      click="searchInput.text=''"/>
+        </s:HGroup>
+    </s:VGroup>
+
+    <s:DataGrid id="grid" width="100%" height="100%" lineHeight="50" selectionChange="getTitle()"
+                doubleClickEnabled="true" doubleClick="grid_doubleClickHandler(event)"
+                typicalItem="{typicalItem}" sortableColumns="false">
+        <s:columns>
+            <s:ArrayList>
+                <s:GridColumn labelFunction="lineNumColFunction"/>
+                <s:GridColumn dataField="工号"/>
+                <s:GridColumn dataField="姓名"/>
+                <s:GridColumn dataField="考勤情况"/>
+            </s:ArrayList>
+        </s:columns>
+    </s:DataGrid>
+    <fx:Script><![CDATA[
+        import basic.BasicRadioButton;
+
+        import mx.collections.ArrayCollection;
+        import mx.events.FlexEvent;
+        import mx.rpc.events.FaultEvent;
+        import mx.rpc.events.ResultEvent;
+        import mx.utils.StringUtil;
+
+        import spark.events.TextOperationEvent;
+
+        import tools.AccessUtil;
+        import tools.CRMmodel;
+        import tools.CRMtool;
+        import tools.ServiceTool;
+
+        private var typicalItem:Object = {姓名: '三位字符', 工号: '1234567890', 考勤情况: '考勤情况'};
+        [Bindable]
+        private var isDo:Boolean = false;
+        [Bindable]
+        private var isShow:Boolean = true;
+
+        [Bindable]
+        private var selectItem:Object = {};
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            AccessUtil.remoteCallJava("core", "getDepartmentGeren", function (e:ResultEvent):void {
+                var list:ArrayCollection = e.result as ArrayCollection
+                departmentSelectTextInput.dataProvider = list;
+                if (CRMtool.isListSizeNotZero(list)) {
+                    var obj:Object = list[0]
+                    departmentSelectTextInput.selectItem = obj;
+                    AccessUtil.remoteCallJava("core", "get考勤类别", function (e:ResultEvent):void {
+                        var list:ArrayCollection = e.result as ArrayCollection
+                        for each(var item:Object in list) {
+                            var r:BasicRadioButton = new BasicRadioButton()
+                            r.data = item;
+                            r.label = item.考勤名称
+                            r.value = item.考勤类别ID
+                            r.group = typeRadioButtonGroup
+                            typeGroup.addElement(r)
+                        }
+
+                        _changeHandler()
+                    }, {code: obj.部门编码}, false)
+                }
+            }, {code: CRMmodel.user.登录名}, false)
+        }
+
+        private function _changeHandler():void {
+            isDo = false
+            grid.grid.verticalScrollPosition = 0;
+            if (departmentSelectTextInput.selectItem == null) {
+                return
+            }
+            AccessUtil.remoteCallJava("core", "getDepartmentKaoqinPersons", function (e:ResultEvent):void {
+                grid.dataProvider = (e.result as ArrayCollection)
+            }, {code: departmentSelectTextInput.selectItem.部门编码, date: dateInput.text}, true);
+        }
+
+        private function typeGroup_creationCompleteHandler(event:FlexEvent):void {
+
+        }
+
+        private function preOrNextButton_clickHandler(event:MouseEvent):void {
+            var selectedIndex:int = grid.selectedIndex;
+            if (event.currentTarget == preButton || event.currentTarget == preButton2) {
+                //grid.selectedItem.考勤情况 = ""
+                if (selectedIndex > 0) {
+                    grid.selectedIndex--
+                }
+            } else {
+                if (event.currentTarget == nextButton && typeRadioButtonGroup.selection == null) {
+                    CRMtool.showToast("请选择考勤情况后再保存。")
+                } else {
+
+                    var _item:Object;
+                    if (event.currentTarget == nextButton2)
+                        _item = selectItem;
+                    else
+                        _item = (typeRadioButtonGroup.selection as BasicRadioButton).data;
+
+                    if (grid.selectedItem.考勤情况 != _item.考勤名称) {
+                        grid.selectedItem.考勤情况 = _item.考勤名称
+                        saveItem(grid.selectedItem, _item)
+                    }
+
+                    if (selectedIndex < (grid.dataProvider.length - 1)) {
+                        grid.selectedIndex++
+                    }
+                }
+            }
+
+            var ac:ArrayCollection = (grid.dataProvider as ArrayCollection)
+            ac.refresh()
+
+            grid.ensureCellIsVisible(ac.getItemIndex(grid.selectedItem))
+
+            getTitle()
+        }
+
+        private function saveItem(selectedItem:Object, data:Object):void {
+            var obj:Object = {};
+            obj.日期 = dateInput.text;
+            obj.部门编码 = selectedItem.工作部门;
+            obj.部门名称 = selectedItem.部门名称;
+            obj.序号 = selectedItem.台账顺序;
+            obj.职工编码 = selectedItem.工号;
+            obj.职工姓名 = selectedItem.姓名;
+            obj.考勤类别ID = data.考勤类别ID;
+            obj.考勤名称 = data.考勤名称;
+            obj.考勤符号 = data.考勤符号;
+            obj.出勤数 = data.出勤数;
+            obj.出勤值 = data.出勤值;
+            obj.录入人 = CRMmodel.user.登录名;
+            obj.录入人姓名 = CRMmodel.user.用户姓名;
+            obj.user = CRMtool.getSimpleUser()
+
+            AccessUtil.remoteCallJava("core", "save考勤", function (e:ResultEvent):void {
+                if (e.result as Boolean) {
+                    //CRMtool.showToast("保存成功");
+                } else {
+                    _errFun(e)
+                }
+            }, obj, false, "", null, function (fe:FaultEvent):void {
+                _errFun()
+            })
+
+            function _errFun(e = null) {
+                var str = selectedItem.工号 + " " + selectedItem.姓名 + " 数据保存失败";
+                if (e != null && CRMtool.isStringNotNull(e.result.str)) {
+                    str += ("，原因：" + e.result.str);
+                }
+                CRMtool.showToast(str);
+
+                selectedItem.绩效 = ''
+                selectedItem.安全 = ''
+                var ac:ArrayCollection = (grid.dataProvider as ArrayCollection)
+                ac.refresh()
+            }
+        }
+
+        private function getTitle():void {
+            if (CRMtool.isStringNotNull(grid.selectedItem.考勤情况))
+                typeRadioButtonGroup.selectedValue = grid.selectedItem.考勤情况
+
+            title = grid.selectedItem.姓名
+        }
+
+        private function button1_clickHandler(event:MouseEvent):void {
+            if ((grid.dataProvider as ArrayCollection).length > 0) {
+                ServiceTool.isDateAllow(dateInput.text, function () {
+                    isDo = true;
+                    grid.selectedIndex = 0
+                    getTitle()
+                }, true)
+            }
+        }
+
+        private function lineNumColFunction(item:Object, column:GridColumn):String {
+            if (grid.dataProvider) {
+                for (var i:int = 1; i <= grid.dataProvider.length; i++) {
+                    if (grid.dataProvider[i - 1] == item) {
+                        item.sort_id = i;
+                        return i + "";
+                    }
+                }
+
+            }
+            return "0";
+        }
+
+        private function foldButton_clickHandler(event:MouseEvent):void {
+            doGroup.visible = false;
+            doGroup.includeInLayout = false;
+        }
+
+        private function grid_doubleClickHandler(event:MouseEvent):void {
+            return;
+            if (!isDo)
+                return;
+
+            if (typeRadioButtonGroup.selection == null) {
+                CRMtool.showToast("请先选择一个考勤类别。")
+                return
+            }
+
+            selectItem = (typeRadioButtonGroup.selection as BasicRadioButton).data;
+
+            isShow = !isShow;
+        }
+
+        private function button2_clickHandler(event:MouseEvent):void {
+            if (!isDo)
+                return;
+
+            if (typeRadioButtonGroup.selection == null) {
+                CRMtool.showToast("请先选择一个考勤类别。")
+                return
+            }
+
+            selectItem = (typeRadioButtonGroup.selection as BasicRadioButton).data;
+
+            isShow = !isShow;
+        }
+
+        private function searchInput_changeHandler(event:TextOperationEvent):void {
+            var ac:ArrayCollection = grid.dataProvider as ArrayCollection;
+            var text:String = StringUtil.trim(searchInput.text);
+            if (text == "")
+                return;
+
+            if (CRMtool.isListSizeNotZero(ac)) {
+                for each(var item:Object in ac) {
+                    var pinyin:String = item.pinyin + "";
+                    if (pinyin.indexOf(text) > -1) {
+                        grid.ensureCellIsVisible(ac.getItemIndex(item));
+                        grid.selectedItem = item;
+                        getTitle();
+                        break;
+                    }
+                }
+            }
+
+        }
+        ]]></fx:Script>
+</basic:BasicView>

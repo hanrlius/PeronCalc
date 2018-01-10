@@ -1,0 +1,148 @@
+<?xml version="1.0"?>
+<!--
+  Created by aruis on 14-2-7.
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+         width="100%" height="100%" creationComplete="creationCompleteHandler(event)">
+    <s:layout>
+        <s:VerticalLayout paddingTop="0"/>
+    </s:layout>
+
+    <s:BorderContainer width="100%" height="35%" backgroundImage="@Embed(source='/assets/img/login/topbg.jpg')"
+                       backgroundImageFillMode="scale" borderVisible="false">
+        <s:Image source="@Embed(source='/assets/img/login/logo2.png')" x="25" y="25" width="26%"
+                 fillMode="scale"/>
+        <s:Image source="@Embed(source='/assets/img/login/logo.png')" verticalCenter="32" horizontalCenter="0"
+                 width="80%" fillMode="scale"/>
+    </s:BorderContainer>
+    <s:VGroup id="loginFormGroup" width="100%" height="{toggleButton.selected?200:100}">
+        <s:HGroup width="100%" height="100%" verticalAlign="middle" gap="1"
+                  paddingLeft="20" paddingRight="20">
+            <s:Image source="@Embed(source='/assets/img/login/u.png')"
+                     height="80%" fillMode="scale"/>
+            <s:Spacer width="10"/>
+            <s:Label text="{toggleButton.selected?'用':'工'}"/>
+            <s:Label text="户" visible="{toggleButton.selected}"/>
+            <s:Label text="{toggleButton.selected?'名':'号'}:"/>
+            <s:Spacer width="15"/>
+            <s:TextInput id="usernameInput" borderVisible="false" contentBackgroundAlpha="0"
+                         text="@{username}"
+                         focusIn="usernameInput.selectAll()"
+                         width="100%"/>
+        </s:HGroup>
+        <s:Line width="100%" visible="{toggleButton.selected}">
+            <s:stroke>
+                <s:SolidColorStroke color="0xcdcdcd" weight="1"/>
+            </s:stroke>
+        </s:Line>
+        <s:HGroup width="100%" height="100%" verticalAlign="middle" gap="1" visible="{toggleButton.selected}"
+                  includeInLayout="{toggleButton.selected}"
+                  paddingLeft="20" paddingRight="20">
+
+            <s:Image source="@Embed(source='/assets/img/login/p.png')"
+                     height="80%" fillMode="scale"/>
+            <s:Spacer width="10"/>
+            <s:Label text="密"/>
+            <s:Label text="密" visible="false"/>
+            <s:Label text="码:"/>
+            <s:Spacer width="15"/>
+            <s:TextInput borderVisible="false" contentBackgroundAlpha="0" displayAsPassword="true"
+                         text="@{password}"
+                         width="100%"/>
+        </s:HGroup>
+    </s:VGroup>
+    <s:BorderContainer borderVisible="false" backgroundColor="#cdcdcd"
+                       width="100%" height="55%">
+        <s:layout>
+            <s:VerticalLayout paddingTop="30" horizontalAlign="center"/>
+        </s:layout>
+        <s:Button width="402"
+                  height="{FlexGlobals.topLevelApplication.applicationDPI>=320?100:70}"
+                  fontSize="40"
+                  label="登 录" click="loginButton_clickHandler(event)"
+                  horizontalCenter="0"/>
+        <s:CheckBox id="toggleButton" label="操作员登录"
+                    skinClass="spark.skins.mobile.CheckBoxSkin"
+                    click="toggleButton_clickHandler(event)" color="#333333"
+                    change="toggleButton_changeHandler(event)"
+                    selected="true"/>
+        <s:Spacer height="100%"/>
+        <s:Label text="徐州中矿微星软件股份有限公司" color="#333333" doubleClickEnabled="true"
+                 doubleClick="label1_doubleClickHandler(event)"/>
+
+        <s:Spacer height="26"/>
+    </s:BorderContainer>
+
+    <fx:Script><![CDATA[
+        import mx.core.FlexGlobals;
+        import mx.events.FlexEvent;
+
+        import tools.CRMmodel;
+        import tools.CRMtool;
+        import tools.ServiceTool;
+
+        public var parentView:MainView;
+
+        [Bindable]
+        public var username:String = '';
+
+        [Bindable]
+        public var password:String = '';
+
+        private function loginButton_clickHandler(event:MouseEvent):void {
+
+
+            if (CRMmodel.debug) {
+                //password = null
+            }
+
+
+            if (!toggleButton.selected) {
+                if (CRMtool.isStringNull(username)) {
+                    CRMtool.showToast("请输入工号.")
+                    return;
+                }
+
+                //parentView.loginType = 1;
+                ServiceTool.login({code: username}, parentView);
+
+            } else {
+                if (CRMtool.isStringNull(username)) {
+                    CRMtool.showToast("请输入用户名.")
+                    return;
+                }
+
+                //parentView.loginType = 2;
+                ServiceTool.login({username: username, password: password}, parentView);
+            }
+
+
+        }
+
+        private function toggleButton_clickHandler(event:MouseEvent):void {
+
+        }
+
+        private function label1_doubleClickHandler(event:MouseEvent):void {
+            CRMmodel.navigator.pushView(ConfigView);
+        }
+
+        private function toggleButton_changeHandler(event:Event):void {
+            initUsername()
+        }
+
+        private function creationCompleteHandler(event:FlexEvent):void {
+            initUsername()
+        }
+
+        private function initUsername():void {
+            if (CRMmodel.debug) {
+                username = toggleButton.selected ? 'zcyddz' : '0050001596';
+                if (CRMmodel.cc == '1') {
+                    username = toggleButton.selected ? 'jdedysb' : 'lw000505';
+                }
+            }
+
+        }
+        ]]></fx:Script>
+</s:Group>
