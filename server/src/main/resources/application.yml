@@ -1,0 +1,43 @@
+server:
+  port: 38080
+
+spring:
+  resources:
+    add-mappings: true
+
+
+logging:
+  level: {org.springframework.web: ERROR}
+
+isLog: true
+
+dbusername: 'mkmis'
+dbpassword: '3578960'
+driverClassName: 'net.sourceforge.jtds.jdbc.Driver'
+
+#url: 'jdbc:jtds:sqlserver://192.168.180.253:1433/'
+#dbname: 'mkmis_cjmk'
+
+#cj
+url: 'jdbc:jtds:sqlserver://192.168.113.219:1433/'
+dbname: 'mkmis_cjmk'
+logdbname: 'mkmis_log'
+
+jixiao: '0DC08D89-3EA4-4620-B1FD-814C76C353C2'
+anquan: '5F60B7D6-4DE6-4E5D-8814-A3CC1473EC61'
+jixiao_da: '00833820-EB51-4477-89F9-08068CC4EEF6'
+leibie_jixiao: '3FD109D7-6E8A-4361-940F-8273D06D0691'
+leibie_anquan: '3FD109D7-6E8A-4361-940F-8273D06D0692'
+
+#xq
+#url: 'jdbc:jtds:sqlserver://192.168.100.171:1433/'
+#dbname: 'mkmis_xqbz'
+#logdbname: 'mkmis_log'
+#
+#
+#jixiao: 'A18D495E-391E-472A-BACF-605137EB738D'
+#anquan: '98561B80-4D6C-4147-A8C8-B19001D2B4BC'
+#jixiao_da: 'FB9028DC-20B1-45A6-99EF-66849DDC2D61'
+#leibie_jixiao: '643F72E2-9FCD-441E-9761-5C095F592AC3'
+#leibie_anquan: 'D677040F-73AA-42FE-981B-378728C7B4A9'
+
